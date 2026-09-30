@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block titulo %}HYDROS · Panel{% endblock %}
+{% block contenido %}
+<h1>Panel · Troncal en vivo</h1>
+<p class="dim">1 Hz vía WebSocket · acumulado de hoy (Bogotá)</p>
+<div class="tarjetas">
+  <div class="tarjeta">
+    <div class="dim">TRONCAL actual</div>
+    <div class="valor b-troncal"><span id="v-troncal">{{ troncal.actual }}</span> <small>L/min</small></div>
+    <div class="dim">Hoy: <span id="a-troncal">{{ troncal.acumulado }}</span> L · prom {{ troncal.promedio }} · máx {{ troncal.maximo }}</div>
+  </div>
+  <div class="tarjeta">
+    <div class="dim">BALANCE hoy</div>
+    <div class="valor"><span id="v-perd">{{ perdidas }}</span> <small>L</small> (<span id="v-pct">{{ pct_perdida }}</span>%)</div>
+    <div class="dim">T − (A+B) · Estado red: <strong id="v-est">{{ estado }}</strong></div>
+  </div>
+  <div class="tarjeta">
+    <div class="dim">BOMBA</div>
+    <div class="valor"><span id="v-bomba">{{ bomba }}</span></div>
+    <div class="dim">origen empresa · control en Red</div>
+  </div>
+</div>
+<h2>Casas · resumen</h2>
+<div class="tarjetas">
+  <div class="tarjeta">
+    <div class="dim">CASA A actual</div>
+    <div class="valor b-ramaa"><span id="v-ramaa">{{ rama_a.actual }}</span> <small>L/min</small></div>
+    <div class="dim">Hoy: {{ rama_a.acumulado }} L · prom {{ rama_a.promedio }}</div>
+  </div>
+  <div class="tarjeta">
+    <div class="dim">CASA B actual</div>
+    <div class="valor b-ramab"><span id="v-ramab">{{ rama_b.actual }}</span> <small>L/min</small></div>
+    <div class="dim">Hoy: {{ rama_b.acumulado }} L · prom {{ rama_b.promedio }}</div>
+  </div>
+</div>
+<p class="dim estado" id="ws-est">WS: conectando…</p>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+  const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/flujos/');
+  const est = document.getElementById('ws-est');
+  ws.onopen = () => { est.textContent = 'WS: en vivo'; };
+  ws.onclose = () => { est.textContent = 'WS: desconectado'; };
+  ws.onmessage = (e) => {
+    const m = JSON.parse(e.data);
+    const d = m.datos || {};
+    if (d.troncal) document.getElementById('v-troncal').textContent = d.troncal.q.toFixed(3);
+    if (d.rama_a) document.getElementById('v-ramaa').textContent = d.rama_a.q.toFixed(3);
+    if (d.rama_b) document.getElementById('v-ramab').textContent = d.rama_b.q.toFixed(3);
+    if (d.bomba) document.getElementById('v-bomba').textContent = d.bomba;
+  };
+})();
+</script>
+{% endblock %}

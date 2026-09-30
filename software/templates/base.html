@@ -18,9 +18,9 @@
     {% block marca %}HYDROS{% endblock %}
   </span>
   <nav>
-    <a href="{% url 'panel' %}" class="{% if request.resolver_match.url_name == 'panel' %}activo{% endif %}">Panel</a>
-    <a href="{% url 'estadisticas' %}" class="{% if request.resolver_match.url_name == 'estadisticas' %}activo{% endif %}">Estadísticas</a>
-    <a href="{% url 'red' %}" class="{% if request.resolver_match.url_name == 'red' %}activo{% endif %}">Red</a>
+    <a href="{% url 'panel' %}" class="{% if request.path == '/' %}activo{% endif %}">Panel</a>
+    <a href="/estadisticas/" class="{% if request.path|slice:':14' == '/estadisticas/' %}activo{% endif %}">Estadísticas</a>
+    <a href="/red/" class="{% if request.path|slice:':5' == '/red/' %}activo{% endif %}">Red</a>
   </nav>
   <button id="btn-tema" type="button">☀ Claro</button>
 </header>
