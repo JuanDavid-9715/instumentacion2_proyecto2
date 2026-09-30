@@ -31,6 +31,7 @@ def panel_datos(request):
     eb = EstadoBomba.objects.order_by('-ts').first()
     seg = round((ahora - ultima).total_seconds()) if ultima else None
     pct = bal['pct_perdida']
+    fresco = seg is not None and seg <= 25
     return JsonResponse({
         'actual': sensores,
         'acumulado': {k: bal[k]['acumulado'] for k in ('troncal', 'rama_a', 'rama_b')},
@@ -39,5 +40,5 @@ def panel_datos(request):
         'estado': 'OK' if abs(pct) < 10 else ('ATENCION' if abs(pct) < 15 else 'REVISAR'),
         'bomba': eb.estado if eb else 'OFF',
         'seg_desde_muestra': seg,
-        'nodo_ok': seg is not None and seg <= 15,
+        'nodo_ok': fresco,
     })
