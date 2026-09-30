@@ -1,39 +1,59 @@
 {% extends "base.html" %}
 {% block titulo %}HYDROS · Panel{% endblock %}
 {% block contenido %}
-<h1>Panel · Troncal en vivo</h1>
-<p class="dim">1 Hz vía WebSocket · acumulado de hoy (Bogotá)</p>
+<h1>Panel · ¿cómo está la red ahora?</h1>
+
+<section class="tarjeta hero">
+  <div>
+    <div class="dim">TRONCAL · caudal actual</div>
+    <div class="valor hero-valor b-troncal"><span id="v-troncal">{{ troncal.actual }}</span> <small>L/min</small></div>
+    <div class="dim">Acumulado hoy: <strong id="a-troncal">{{ troncal.acumulado }}</strong> L · prom {{ troncal.promedio }} · máx {{ troncal.maximo }}</div>
+  </div>
+  <div>
+    <canvas id="spark" width="320" height="90" aria-label="Últimos 60 valores del troncal"></canvas>
+    <div class="dim">Últimos 60 s · <span id="ws-hace" aria-live="polite">—</span></div>
+  </div>
+  <div>
+    <div class="dim">Estado red</div>
+    <div class="valor" id="v-est">{{ estado }}</div>
+    <div class="dim">Bomba: <span id="v-bomba">{{ bomba }}</span> (empresa)</div>
+  </div>
+</section>
+
+<h2>Balance hídrico de hoy</h2>
+<p class="caption">Troncal − (Casa A + Casa B) = pérdidas. Si el % supera 15%, la red necesita revisión.</p>
 <div class="tarjetas">
   <div class="tarjeta">
-    <div class="dim">TRONCAL actual</div>
-    <div class="valor b-troncal"><span id="v-troncal">{{ troncal.actual }}</span> <small>L/min</small></div>
-    <div class="dim">Hoy: <span id="a-troncal">{{ troncal.acumulado }}</span> L · prom {{ troncal.promedio }} · máx {{ troncal.maximo }}</div>
+    <div class="dim">Pérdidas</div>
+    <div class="valor"><span id="v-perd">{{ perdidas }}</span> <small>L</small></div>
+    <div class="dim"><span id="v-pct">{{ pct_perdida }}</span>% del troncal</div>
   </div>
   <div class="tarjeta">
-    <div class="dim">BALANCE hoy</div>
-    <div class="valor"><span id="v-perd">{{ perdidas }}</span> <small>L</small> (<span id="v-pct">{{ pct_perdida }}</span>%)</div>
-    <div class="dim">T − (A+B) · Estado red: <strong id="v-est">{{ estado }}</strong></div>
-  </div>
-  <div class="tarjeta">
-    <div class="dim">BOMBA</div>
-    <div class="valor"><span id="v-bomba">{{ bomba }}</span></div>
-    <div class="dim">origen empresa · control en Red</div>
+    <div class="dim">Reparto de hoy (L)</div>
+    <div id="barra-reparto" aria-label="Reparto del agua">T {{ troncal.acumulado }} · A {{ rama_a.acumulado }} · B {{ rama_b.acumulado }}</div>
   </div>
 </div>
-<h2>Casas · resumen</h2>
+
+<h2>Casas · ¿quién consume?</h2>
 <div class="tarjetas">
   <div class="tarjeta">
-    <div class="dim">CASA A actual</div>
-    <div class="valor b-ramaa"><span id="v-ramaa">{{ rama_a.actual }}</span> <small>L/min</small></div>
-    <div class="dim">Hoy: {{ rama_a.acumulado }} L · prom {{ rama_a.promedio }}</div>
+    <a href="{% url 'detalle' 'rama_a' %}" style="color:inherit;text-decoration:none">
+      <div class="dim">CASA A · actual</div>
+      <div class="valor b-ramaa"><span id="v-ramaa">{{ rama_a.actual }}</span> <small>L/min</small></div>
+      <div class="dim">Hoy <span id="a-ramaa">{{ rama_a.acumulado }}</span> L · prom {{ rama_a.promedio }}</div>
+    </a>
   </div>
   <div class="tarjeta">
-    <div class="dim">CASA B actual</div>
-    <div class="valor b-ramab"><span id="v-ramab">{{ rama_b.actual }}</span> <small>L/min</small></div>
-    <div class="dim">Hoy: {{ rama_b.acumulado }} L · prom {{ rama_b.promedio }}</div>
+    <a href="{% url 'detalle' 'rama_b' %}" style="color:inherit;text-decoration:none">
+      <div class="dim">CASA B · actual</div>
+      <div class="valor b-ramab"><span id="v-ramab">{{ rama_b.actual }}</span> <small>L/min</small></div>
+      <div class="dim">Hoy <span id="a-ramab">{{ rama_b.acumulado }}</span> L · prom {{ rama_b.promedio }}</div>
+    </a>
   </div>
 </div>
+
 <h2>Diagrama de red</h2>
+<p class="caption">Grosor y velocidad del flujo ∝ caudal en vivo.</p>
 <svg viewBox="0 0 640 240" style="width:100%;background:var(--panel);border:1px solid var(--linea);border-radius:10px" role="img" aria-label="Diagrama troncal a ramas">
   <path class="tubo" d="M30 120 H270" />
   <path id="f-troncal" class="flujo flujo-t" d="M30 120 H270" />
@@ -55,7 +75,9 @@
 <script>
 (function () {
   const est = document.getElementById('ws-est');
+  const hace = document.getElementById('ws-hace');
   const url = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/flujos/';
+  const spark = {{ spark|safe }};
   let intento = 0, ultimoVivo = 0;
   function tramo(idV, idS, idF, v) {
     document.getElementById(idV).textContent = v.toFixed(3);
@@ -67,6 +89,18 @@
       f.style.animationDuration = Math.max(0.25, 1.6 - Math.min(1.3, v * 0.15)).toFixed(2) + 's';
     }
   }
+  function dibujarSpark() {
+    const c = document.getElementById('spark'), x = c.getContext('2d');
+    x.clearRect(0, 0, c.width, c.height);
+    const mx = Math.max(0.5, ...spark);
+    x.strokeStyle = '#22d3ee'; x.lineWidth = 1.8; x.beginPath();
+    spark.forEach((v, i) => {
+      const px = 6 + i * (c.width - 12) / 59, py = c.height - 8 - (v / mx) * (c.height - 16);
+      i ? x.lineTo(px, py) : x.moveTo(px, py);
+    });
+    x.stroke();
+  }
+  dibujarSpark();
   function conectar() {
     const ws = new WebSocket(url);
     ws.onopen = () => { est.textContent = 'WS: en vivo'; intento = 0; };
@@ -79,7 +113,7 @@
     ws.onmessage = (e) => {
       const d = (JSON.parse(e.data).datos) || {};
       if (d.troncal || d.rama_a || d.rama_b || d.bomba) ultimoVivo = Date.now();
-      if (d.troncal) tramo('v-troncal', 's-troncal', 'f-troncal', d.troncal.q);
+      if (d.troncal) { tramo('v-troncal', 's-troncal', 'f-troncal', d.troncal.q); spark.push(d.troncal.q); spark.shift(); dibujarSpark(); }
       if (d.rama_a) tramo('v-ramaa', 's-ramaa', 'f-ramaa', d.rama_a.q);
       if (d.rama_b) tramo('v-ramab', 's-ramab', 'f-ramab', d.rama_b.q);
       if (d.bomba) document.getElementById('v-bomba').textContent = d.bomba;
@@ -87,12 +121,21 @@
   }
   conectar();
   setInterval(() => {
+    hace.textContent = ultimoVivo ? ('actualizado hace ' + Math.round((Date.now() - ultimoVivo) / 1000) + ' s') : 'sin datos aún';
     if (Date.now() - ultimoVivo < 3000) return;
     fetch('/estadisticas/datos/?periodo=hoy').then(r => r.json()).then(j => {
       const s = j.sensores;
-      tramo('v-troncal', 's-troncal', 'f-troncal', (s.troncal.serie.slice(-1)[0] || [0, 0])[1]);
-      tramo('v-ramaa', 's-ramaa', 'f-ramaa', (s.rama_a.serie.slice(-1)[0] || [0, 0])[1]);
-      tramo('v-ramab', 's-ramab', 'f-ramab', (s.rama_b.serie.slice(-1)[0] || [0, 0])[1]);
+      const ult = (k) => (s[k].serie.slice(-1)[0] || [0, 0])[1];
+      tramo('v-troncal', 's-troncal', 'f-troncal', ult('troncal'));
+      tramo('v-ramaa', 's-ramaa', 'f-ramaa', ult('rama_a'));
+      tramo('v-ramab', 's-ramab', 'f-ramab', ult('rama_b'));
+      document.getElementById('a-troncal').textContent = s.troncal.acumulado;
+      document.getElementById('a-ramaa').textContent = s.rama_a.acumulado;
+      document.getElementById('a-ramab').textContent = s.rama_b.acumulado;
+      document.getElementById('v-perd').textContent = j.perdidas;
+      document.getElementById('v-pct').textContent = j.pct_perdida;
+      document.getElementById('v-est').textContent = Math.abs(j.pct_perdida) < 15 ? 'OK' : 'REVISAR';
+      spark.push(ult('troncal')); spark.shift(); dibujarSpark();
       ultimoVivo = Date.now();
     }).catch(() => {});
   }, 2000);

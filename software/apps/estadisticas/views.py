@@ -1,46 +1,9 @@
-import statistics
-
 from django.http import JsonResponse
 from django.shortcuts import render
-from django.utils import timezone
 
-from apps.sensores.models import Sensor
+from apps.sensores.queries import resumen_periodo
 
 PERIODOS = {'hoy': 1, 'semana': 7, 'mes': 30}
-
-
-def _lecturas(codigo, dias):
-    desde = timezone.now() - timezone.timedelta(days=dias)
-    return list(
-        Sensor.objects.get(codigo=codigo).lecturas
-        .filter(ts_ingesta__gte=desde).order_by('ts_ingesta')
-        .values_list('q', flat=True)
-    )
-
-
-def _serie(codigo, dias, max_pts=120):
-    desde = timezone.now() - timezone.timedelta(days=dias)
-    qs = Sensor.objects.get(codigo=codigo).lecturas.filter(
-        ts_ingesta__gte=desde).order_by('ts_ingesta').values('q', 'ts_ingesta')
-    vals = [(r['ts_ingesta'].isoformat(), r['q']) for r in qs]
-    paso = max(1, len(vals) // max_pts)
-    return vals[::paso]
-
-
-def _stats(vals):
-    if not vals:
-        return {'n': 0, 'media': 0, 'mediana': 0, 'moda': 0,
-                'desv': 0, 'min': 0, 'max': 0}
-    modas = statistics.multimode([round(v, 2) for v in vals])
-    return {
-        'n': len(vals),
-        'media': round(statistics.fmean(vals), 3),
-        'mediana': round(statistics.median(vals), 3),
-        'moda': modas[0] if len(modas) == 1 else None,
-        'desv': round(statistics.stdev(vals), 3) if len(vals) > 1 else 0,
-        'min': round(min(vals), 3),
-        'max': round(max(vals), 3),
-    }
 
 
 def estadisticas(request):
@@ -51,11 +14,13 @@ def estadisticas(request):
 def datos(request):
     periodo = request.GET.get('periodo', 'hoy')
     dias = PERIODOS.get(periodo, 1)
-    out = {}
-    for codigo in ('troncal', 'rama_a', 'rama_b'):
-        vals = _lecturas(codigo, dias)
-        st = _stats(vals)
-        st['acumulado'] = round(sum(vals) / 60.0, 2)
-        st['serie'] = _serie(codigo, dias)
-        out[codigo] = st
-    return JsonResponse({'periodo': periodo, 'sensores': out})
+    out = {c: resumen_periodo(c, dias) for c in ('troncal', 'rama_a', 'rama_b')}
+    t, a, b = out['troncal']['acumulado'], out['rama_a']['acumulado'], out['rama_b']['acumulado']
+    perd = round(t - a - b, 2)
+    return JsonResponse({
+        'periodo': periodo,
+        'sensores': out,
+        'volumen_total': round(t, 2),
+        'perdidas': perd,
+        'pct_perdida': round(100 * perd / t, 1) if t else 0,
+    })

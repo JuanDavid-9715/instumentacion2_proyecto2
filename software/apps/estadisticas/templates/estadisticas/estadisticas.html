@@ -1,21 +1,39 @@
 {% extends "base.html" %}
 {% block titulo %}HYDROS · Estadísticas{% endblock %}
 {% block contenido %}
-<h1>Estadísticas</h1>
-<p class="dim">Laboratorio · filtros por periodo</p>
+<h1>Estadísticas · ¿cómo se comportó la red?</h1>
 <p>
   <a href="?periodo=hoy">Hoy</a> ·
   <a href="?periodo=semana">Semana</a> ·
   <a href="?periodo=mes">Mes</a>
   <span class="dim">(actual: {{ periodo }})</span>
 </p>
-<h2>Evolución temporal (líneas)</h2>
+
+<h2>Indicadores del periodo</h2>
+<div class="tarjetas">
+  <div class="tarjeta"><div class="dim">Volumen troncal</div><div class="valor b-troncal" id="k-vol">—</div></div>
+  <div class="tarjeta"><div class="dim">Pérdidas</div><div class="valor" id="k-perd">—</div></div>
+  <div class="tarjeta"><div class="dim">Muestras</div><div class="valor" id="k-n">—</div></div>
+</div>
+
+<h2>Evolución temporal</h2>
+<p class="caption">Cuándo hubo consumo. Picos = motor encendido; plano en 0 = red en reposo.</p>
 <canvas id="g-lineas" width="900" height="260" style="width:100%;background:var(--panel);border:1px solid var(--linea);border-radius:10px"></canvas>
-<h2>Comparativa promedios (barras)</h2>
+
+<h2>Caja y bigotes por sensor</h2>
+<p class="caption">La caja es el consumo típico (Q1–Q3), la línea es la mediana, los bigotes el rango normal y los puntos los transitorios de arranque.</p>
+<canvas id="g-caja" width="900" height="260" style="width:100%;background:var(--panel);border:1px solid var(--linea);border-radius:10px"></canvas>
+
+<h2>Promedios comparados</h2>
+<p class="caption">Quién consume más en promedio. Troncal debería ≈ A + B.</p>
 <canvas id="g-barras" width="900" height="220" style="width:100%;background:var(--panel);border:1px solid var(--linea);border-radius:10px"></canvas>
-<h2>Proporción del consumo (pastel)</h2>
+
+<h2>Proporción del volumen</h2>
+<p class="caption">De cada 100 L que salen del troncal, cuántos llegan a cada casa y cuántos se pierden.</p>
 <canvas id="g-pastel" width="400" height="260" style="max-width:420px;background:var(--panel);border:1px solid var(--linea);border-radius:10px"></canvas>
+
 <h2>Tabla por sensor</h2>
+<p class="caption">n = muestras · media/mediana = caudal típico · moda = valor más repetido · desv = qué tan intermitente · acum = volumen total.</p>
 <table id="t-stats" border="1" cellpadding="6" style="border-collapse:collapse">
   <thead><tr><th>Sensor</th><th>n</th><th>media</th><th>mediana</th><th>moda</th><th>desv</th><th>mín</th><th>máx</th><th>acum L</th></tr></thead>
   <tbody></tbody>
@@ -46,6 +64,26 @@
       x.stroke();
     });
   }
+  function dibujarCaja(stats) {
+    const c = document.getElementById('g-caja'), x = c.getContext('2d');
+    x.clearRect(0, 0, c.width, c.height);
+    const ks = Object.keys(stats), mx = Math.max(1, ...ks.map(k => stats[k].max));
+    const Y = (v) => c.height - 20 - (v / mx) * (c.height - 50);
+    ks.forEach((k, i) => {
+      const v = stats[k], cx = 120 + i * 300, w = 90;
+      x.strokeStyle = colores[k]; x.fillStyle = colores[k] + '44'; x.lineWidth = 2;
+      x.strokeRect(cx - w / 2, Y(v.q3), w, Math.max(2, Y(v.q1) - Y(v.q3)));
+      x.fillRect(cx - w / 2, Y(v.q3), w, Math.max(2, Y(v.q1) - Y(v.q3)));
+      x.beginPath(); x.moveTo(cx - w / 2, Y(v.mediana)); x.lineTo(cx + w / 2, Y(v.mediana)); x.stroke();
+      x.lineWidth = 1.4;
+      x.beginPath(); x.moveTo(cx, Y(v.q3)); x.lineTo(cx, Y(v.w_sup)); x.stroke();
+      x.beginPath(); x.moveTo(cx, Y(v.q1)); x.lineTo(cx, Y(v.w_inf)); x.stroke();
+      [v.w_sup, v.w_inf].forEach(wv => { x.beginPath(); x.moveTo(cx - 20, Y(wv)); x.lineTo(cx + 20, Y(wv)); x.stroke(); });
+      x.fillStyle = colores[k];
+      v.atipicos.slice(0, 30).forEach(p => { x.beginPath(); x.arc(cx + (p % 7) * 8 - 24, Y(p), 2.5, 0, 7); x.fill(); });
+      x.fillStyle = '#9fb0c9'; x.fillText(k + ' med ' + v.mediana, cx - 45, c.height - 4);
+    });
+  }
   function dibujarBarras(proms) {
     const c = document.getElementById('g-barras'), x = c.getContext('2d');
     x.clearRect(0, 0, c.width, c.height);
@@ -70,17 +108,21 @@
     });
   }
   fetch('/estadisticas/datos/?periodo=' + per).then(r => r.json()).then(j => {
-    const s = j.sensores, series = {}, proms = {}, acums = {};
+    const s = j.sensores, series = {}, proms = {}, acums = {}, stats = {};
     const tb = document.querySelector('#t-stats tbody');
     let total = 0;
     Object.entries(s).forEach(([k, v]) => {
       total += v.n;
       series[k] = v.serie; proms[k] = v.media; acums[k] = v.acumulado;
+      stats[k] = v;
       const tr = document.createElement('tr');
       tr.innerHTML = `<td>${k}</td><td>${v.n}</td><td>${v.media}</td><td>${v.mediana}</td><td>${v.moda ?? '—'}</td><td>${v.desv}</td><td>${v.min}</td><td>${v.max}</td><td>${v.acumulado}</td>`;
       tb.appendChild(tr);
     });
-    dibujarLineas(series); dibujarBarras(proms); dibujarPastel(acums);
+    document.getElementById('k-vol').textContent = j.volumen_total + ' L';
+    document.getElementById('k-perd').textContent = j.perdidas + ' L (' + j.pct_perdida + '%)';
+    document.getElementById('k-n').textContent = total;
+    dibujarLineas(series); dibujarCaja(stats); dibujarBarras(proms); dibujarPastel(acums);
     if (!total) {
       const tr = document.createElement('tr');
       tr.innerHTML = '<td colspan="9">Sin datos en este periodo: enciende el nodo y corre listen_mqtt.</td>';
