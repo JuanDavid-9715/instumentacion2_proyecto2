@@ -15,10 +15,7 @@ services:
           name: hidrico-db
           property: connectionString
       - key: REDIS_URL
-        fromService:
-          type: keyvalue
-          name: hidrico-redis
-          property: connectionString
+        sync: false
       - key: MQTT_HOST
         sync: false
       - key: MQTT_PORT
@@ -32,7 +29,3 @@ databases:
   - name: hidrico-db
     databaseName: hidrico
     user: hidrico
-
-keyvalues:
-  - name: hidrico-redis
-    maxmemoryPolicy: allkeys-lru
