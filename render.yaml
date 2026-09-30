@@ -1,0 +1,38 @@
+services:
+  - type: web
+    name: hidrico
+    runtime: python
+    rootDir: software
+    buildCommand: ./build.sh
+    startCommand: daphne config.asgi:application -b 0.0.0.0 -p $PORT
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: hidrico-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: hidrico-redis
+          property: connectionString
+      - key: MQTT_HOST
+        sync: false
+      - key: MQTT_PORT
+        value: "8883"
+      - key: MQTT_USER
+        sync: false
+      - key: MQTT_PASS
+        sync: false
+
+databases:
+  - name: hidrico-db
+    databaseName: hidrico
+    user: hidrico
+
+keyvalues:
+  - name: hidrico-redis
+    maxmemoryPolicy: allkeys-lru
