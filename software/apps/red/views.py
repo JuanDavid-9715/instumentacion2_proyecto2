@@ -68,4 +68,7 @@ def bomba(request):
         publicar_orden_bomba(orden)
     except Exception:
         pass
+    destino = request.POST.get('next', '')
+    if destino.startswith('/') and not destino.startswith('//'):
+        return redirect(destino)
     return redirect('red')

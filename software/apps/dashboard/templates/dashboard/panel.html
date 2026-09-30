@@ -14,9 +14,10 @@
     <div class="dim">Red</div>
     <div class="heroe-semaforo" id="v-est">{{ estado }}</div>
     <div class="dim">Bomba</div>
-    <form method="post" action="{% url 'bomba' %}" onsubmit="return confirm('¿Cambiar estado de la bomba?');">
+    <form method="post" action="{% url 'bomba' %}">
       {% csrf_token %}
       <input type="hidden" name="orden" id="orden-bomba" value="{% if bomba == 'ON' %}OFF{% else %}ON{% endif %}">
+      <input type="hidden" name="next" value="/">
       <button id="v-bomba" type="submit" class="toggle-bomba {% if bomba == 'ON' %}on{% else %}off{% endif %}">{{ bomba }}</button>
     </form>
   </div>
