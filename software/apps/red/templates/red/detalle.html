@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load l10n %}
 {% block titulo %}HYDROS · {{ sensor.nombre }}{% endblock %}
 {% block contenido %}
 <p class="dim"><a href="{% url 'red' %}">← Red</a> · {{ sensor.codigo }}</p>
@@ -51,7 +52,7 @@
   });
   x.stroke();
   const [kx, kw, kh] = prep('g-det-caja');
-  const q = { q1: {{ caja.q1 }}, med: {{ caja.mediana }}, q3: {{ caja.q3 }}, min: {{ caja.min }}, max: {{ caja.max }} };
+  const q = { q1: {{ caja.q1|unlocalize }}, med: {{ caja.mediana|unlocalize }}, q3: {{ caja.q3|unlocalize }}, min: {{ caja.min|unlocalize }}, max: {{ caja.max|unlocalize }} };
   const m2 = Math.max(0.5, q.max), Y = (v) => kh - 26 - (v / m2) * (kh - 46);
   const cx = kw / 2, bw = 100;
   kx.strokeStyle = '#24334f'; kx.lineWidth = 1;
