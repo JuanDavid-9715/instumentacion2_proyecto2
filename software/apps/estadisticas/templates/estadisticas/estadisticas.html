@@ -2,12 +2,11 @@
 {% block titulo %}HYDROS · Estadísticas{% endblock %}
 {% block contenido %}
 <h1>Estadísticas · ¿cómo se comportó la red?</h1>
-<p>
-  <a href="?periodo=hoy">Hoy</a> ·
-  <a href="?periodo=semana">Semana</a> ·
-  <a href="?periodo=mes">Mes</a>
-  <span class="dim">(actual: {{ periodo }})</span>
-</p>
+<div class="segmentado" role="group" aria-label="Periodo">
+  <a href="?periodo=hoy" class="{% if periodo == 'hoy' %}activo{% endif %}" {% if periodo == 'hoy' %}aria-current="true"{% endif %}>Hoy</a>
+  <a href="?periodo=semana" class="{% if periodo == 'semana' %}activo{% endif %}" {% if periodo == 'semana' %}aria-current="true"{% endif %}>Semana</a>
+  <a href="?periodo=mes" class="{% if periodo == 'mes' %}activo{% endif %}" {% if periodo == 'mes' %}aria-current="true"{% endif %}>Mes</a>
+</div>
 
 <section class="tarjetas" aria-label="Indicadores del periodo">
   <div class="tarjeta"><div class="dim">Volumen troncal</div><div class="valor b-troncal" id="k-vol">—</div></div>
@@ -39,10 +38,15 @@
   <canvas id="g-ojiva" height="240"></canvas>
 </section>
 <section class="chart-card">
-  <h3>Promedios y proporción</h3>
-  <p class="caption">Barras = quién consume más (T ≈ A+B). Pastel = de cada 100 L, cuántos llegan y cuántos se pierden.</p>
+  <h3>Promedios comparados</h3>
+  <p class="caption">Quién consume más en promedio. Troncal debería ≈ A + B.</p>
   <canvas id="g-barras" height="180"></canvas>
-  <canvas id="g-pastel" height="200"></canvas>
+</section>
+<section class="chart-card">
+  <h3 id="t-perdida">Pérdidas del periodo</h3>
+  <p class="caption">Barra contra el umbral 15%: verde OK, ámbar atención, rojo revisar. Abajo, de cada 100 L del troncal cuántos llegan y cuántos se pierden.</p>
+  <canvas id="g-perdida" height="90"></canvas>
+  <canvas id="g-reparto" height="70"></canvas>
 </section>
 </div>
 
@@ -178,17 +182,35 @@
       x.fillStyle = '#e8eef7'; x.fillText(k + ' ' + proms[k], 60 + i * bw + 10, h - 10);
     });
   }
-  function dibujarPastel(acums) {
-    const [x, w, h] = prep('g-pastel');
-    const ks = Object.keys(acums), tot = Math.max(1e-9, Object.values(acums).reduce((a, b) => a + b, 0));
-    const cx = w / 2 - 60, cy = h / 2, r = Math.min(80, h / 2 - 16);
-    let a0 = -Math.PI / 2, lx = cx + r + 18, ly = 24;
-    ks.forEach(k => {
-      const a1 = a0 + (acums[k] / tot) * Math.PI * 2;
-      x.fillStyle = C[k]; x.beginPath(); x.moveTo(cx, cy); x.arc(cx, cy, r, a0, a1); x.fill();
-      x.fillStyle = '#e8eef7'; x.fillRect(lx, ly, 12, 12);
-      x.fillStyle = C.dim; x.fillText(`${k} ${(100 * acums[k] / tot).toFixed(0)}%`, lx + 18, ly + 11);
-      ly += 22; a0 = a1;
+  function dibujarPerdida(pct) {
+    const [x, w, h] = prep('g-perdida');
+    const esc = Math.max(30, Math.abs(pct) * 1.2);
+    const X = (v) => 60 + (v / esc) * (w - 80);
+    x.fillStyle = '#24334f'; x.fillRect(60, 18, w - 80, 26);
+    const col = Math.abs(pct) < 10 ? C.troncal : (Math.abs(pct) < 15 ? '#fbbf24' : '#f87171');
+    x.fillStyle = col;
+    x.fillRect(Math.min(X(0), X(pct)), 18, Math.abs(X(pct) - X(0)), 26);
+    x.fillStyle = '#e8eef7';
+    x.fillRect(X(15) - 1, 10, 2, 42); x.fillRect(X(-15) - 1, 10, 2, 42);
+    x.fillStyle = C.dim; x.fillText('±15% umbral', X(15) + 5, 16);
+    x.fillStyle = '#e8eef7'; x.font = 'bold 15px "Segoe UI", system-ui, sans-serif';
+    x.fillText(pct + '%', 8, 38);
+    x.font = '12px "Segoe UI", system-ui, sans-serif';
+    document.getElementById('t-perdida').textContent =
+      Math.abs(pct) < 15 ? `Pérdidas del periodo: ${pct}%` : `Pérdidas del periodo: ${pct}% — revisar red`;
+  }
+  function dibujarReparto(acums) {
+    const [x, w, h] = prep('g-reparto');
+    const t = Math.max(1e-9, acums.troncal);
+    const pa = 100 * acums.rama_a / t, pb = 100 * acums.rama_b / t;
+    const pp = Math.max(0, 100 - pa - pb);
+    const partes = [[pa, C.rama_a, 'A'], [pb, C.rama_b, 'B'], [pp, '#f87171', 'pérdida']];
+    let px = 8;
+    partes.forEach(([v, col, nom]) => {
+      const ancho = v / 100 * (w - 16);
+      x.fillStyle = col; x.fillRect(px, 14, ancho, 24);
+      if (ancho > 52) { x.fillStyle = '#0b1220'; x.fillText(`${nom} ${v.toFixed(0)}%`, px + 6, 31); }
+      px += ancho;
     });
   }
   fetch('/estadisticas/datos/?periodo=' + per).then(r => r.json()).then(j => {
@@ -215,7 +237,7 @@
     document.getElementById('t-caja').textContent =
       Math.abs(j.pct_perdida) < 15 ? 'Consumo típico por sensor' : `Pérdidas ${j.pct_perdida}%: la red pierde agua`;
     dibujarLineas(series); dibujarCaja(stats); dibujarHist(hist); dibujarOjiva(ojivas);
-    dibujarBarras(proms); dibujarPastel(acums);
+    dibujarBarras(proms); dibujarPerdida(j.pct_perdida); dibujarReparto(acums);
     if (!total) {
       const tr = document.createElement('tr');
       tr.innerHTML = '<td colspan="9">Sin datos en este periodo: enciende el nodo y arranca Daphne.</td>';
