@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block titulo %}HYDROS · Estadísticas{% endblock %}
+{% block contenido %}
+<h1>Estadísticas</h1>
+<p class="dim">Laboratorio · filtros por periodo</p>
+<p>
+  <a href="?periodo=hoy">Hoy</a> ·
+  <a href="?periodo=semana">Semana</a> ·
+  <a href="?periodo=mes">Mes</a>
+  <span class="dim">(actual: {{ periodo }})</span>
+</p>
+<h2>Evolución temporal (líneas)</h2>
+<canvas id="g-lineas" width="900" height="260" style="width:100%;background:var(--panel);border:1px solid var(--linea);border-radius:10px"></canvas>
+<h2>Comparativa promedios (barras)</h2>
+<canvas id="g-barras" width="900" height="220" style="width:100%;background:var(--panel);border:1px solid var(--linea);border-radius:10px"></canvas>
+<h2>Proporción del consumo (pastel)</h2>
+<canvas id="g-pastel" width="400" height="260" style="max-width:420px;background:var(--panel);border:1px solid var(--linea);border-radius:10px"></canvas>
+<h2>Tabla por sensor</h2>
+<table id="t-stats" border="1" cellpadding="6" style="border-collapse:collapse">
+  <thead><tr><th>Sensor</th><th>n</th><th>media</th><th>mediana</th><th>moda</th><th>desv</th><th>mín</th><th>máx</th><th>acum L</th></tr></thead>
+  <tbody></tbody>
+</table>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+  const per = new URLSearchParams(location.search).get('periodo') || 'hoy';
+  const css = getComputedStyle(document.documentElement);
+  const colores = {
+    troncal: css.getPropertyValue('--neon-troncal').trim() || '#22d3ee',
+    rama_a: css.getPropertyValue('--neon-ramaa').trim() || '#34d399',
+    rama_b: css.getPropertyValue('--neon-ramab').trim() || '#fbbf24'
+  };
+  function dibujarLineas(series) {
+    const c = document.getElementById('g-lineas'), x = c.getContext('2d');
+    x.clearRect(0, 0, c.width, c.height);
+    const todas = [].concat(...Object.values(series).map(s => s.map(p => p[1])));
+    const mx = Math.max(1, ...todas);
+    Object.entries(series).forEach(([k, pts]) => {
+      x.strokeStyle = colores[k]; x.lineWidth = 1.6; x.beginPath();
+      pts.forEach(([t, v], i) => {
+        const px = 10 + i * (c.width - 20) / Math.max(1, pts.length - 1);
+        const py = c.height - 12 - (v / mx) * (c.height - 30);
+        i ? x.lineTo(px, py) : x.moveTo(px, py);
+      });
+      x.stroke();
+    });
+  }
+  function dibujarBarras(proms) {
+    const c = document.getElementById('g-barras'), x = c.getContext('2d');
+    x.clearRect(0, 0, c.width, c.height);
+    const ks = Object.keys(proms), mx = Math.max(1, ...Object.values(proms));
+    ks.forEach((k, i) => {
+      const w = (c.width - 40) / ks.length, h = (proms[k] / mx) * (c.height - 60);
+      x.fillStyle = colores[k];
+      x.fillRect(20 + i * w + 8, c.height - 30 - h, w - 16, h);
+      x.fillStyle = '#9fb0c9'; x.fillText(k + ' ' + proms[k], 20 + i * w + 8, c.height - 12);
+    });
+  }
+  function dibujarPastel(acums) {
+    const c = document.getElementById('g-pastel'), x = c.getContext('2d');
+    x.clearRect(0, 0, c.width, c.height);
+    const ks = Object.keys(acums), tot = Math.max(1e-9, Object.values(acums).reduce((a, b) => a + b, 0));
+    let a0 = -Math.PI / 2;
+    ks.forEach(k => {
+      const a1 = a0 + (acums[k] / tot) * Math.PI * 2;
+      x.fillStyle = colores[k]; x.beginPath();
+      x.moveTo(200, 130); x.arc(200, 130, 100, a0, a1); x.fill();
+      a0 = a1;
+    });
+  }
+  fetch('/estadisticas/datos/?periodo=' + per).then(r => r.json()).then(j => {
+    const s = j.sensores, series = {}, proms = {}, acums = {};
+    const tb = document.querySelector('#t-stats tbody');
+    Object.entries(s).forEach(([k, v]) => {
+      series[k] = v.serie; proms[k] = v.media; acums[k] = v.acumulado;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${k}</td><td>${v.n}</td><td>${v.media}</td><td>${v.mediana}</td><td>${v.moda ?? '—'}</td><td>${v.desv}</td><td>${v.min}</td><td>${v.max}</td><td>${v.acumulado}</td>`;
+      tb.appendChild(tr);
+    });
+    dibujarLineas(series); dibujarBarras(proms); dibujarPastel(acums);
+  });
+})();
+</script>
+{% endblock %}
