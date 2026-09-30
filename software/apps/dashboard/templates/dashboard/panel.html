@@ -100,7 +100,7 @@
     $('v-bomba').textContent = j.bomba;
     const est = $('v-est');
     est.textContent = j.nodo_ok ? j.estado : 'SIN DATOS';
-    est.className = 'heroe-semaforo sem-' + (j.nodo_ok ? j.estado : 'SIN DATOS');
+    est.className = 'heroe-semaforo ' + (j.nodo_ok ? 'sem-' + j.estado : 'sem-NODATA');
     $('t-balance').textContent = j.nodo_ok
       ? `Balance de hoy: ${j.perdidas} L (${j.pct_perdida}%)`
       : 'Balance de hoy: sin datos del nodo';
@@ -113,7 +113,14 @@
     $('ws-est').textContent = j.nodo_ok ? 'En vivo · sondeo 2 s' : 'Nodo caído: enciende el ESP32 y corre listen_mqtt';
   }
   dibujarSpark();
-  function ciclo() { fetch('/panel/datos/').then(r => r.json()).then(pinta).catch(() => {}); }
+  function ciclo() {
+    fetch('/panel/datos/').then(r => {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(pinta).catch((e) => {
+      $('ws-est').textContent = 'Error actualizando (' + e.message + '): ¿reiniciaste Daphne tras actualizar?';
+    });
+  }
   ciclo();
   setInterval(ciclo, 2000);
   try {

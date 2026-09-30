@@ -95,7 +95,7 @@ main { padding: 1.2rem; max-width: 1200px; margin: 0 auto; }
 .heroe-semaforo { font-size: 1.6rem; font-weight: 700; }
 .sem-OK { color: var(--ok); }
 .sem-ATENCION { color: var(--neon-ramab); }
-.sem-REVISAR, .sem-SIN\ DATOS { color: var(--mal); }
+.sem-REVISAR, .sem-NODATA { color: var(--mal); }
 .reparto { display: flex; height: 26px; border-radius: 8px; overflow: hidden; border: 1px solid var(--linea); }
 .rep-a { background: var(--neon-ramaa); }
 .rep-b { background: var(--neon-ramab); }
