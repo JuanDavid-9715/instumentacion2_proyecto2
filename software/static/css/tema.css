@@ -1,0 +1,90 @@
+:root {
+  --fondo: #0b1220;
+  --panel: #131d33;
+  --panel-2: #182642;
+  --texto: #e8eef7;
+  --texto-dim: #9fb0c9;
+  --linea: #24334f;
+  --neon-troncal: #22d3ee;
+  --neon-ramaa: #34d399;
+  --neon-ramab: #fbbf24;
+  --pastel-alerta: #f9a8d4;
+  --ok: #34d399;
+  --mal: #f87171;
+}
+
+[data-tema="claro"] {
+  --fondo: #f2f5fa;
+  --panel: #ffffff;
+  --panel-2: #e9eef6;
+  --texto: #16233a;
+  --texto-dim: #55677f;
+  --linea: #d5dee9;
+  --neon-troncal: #0284c7;
+  --neon-ramaa: #059669;
+  --neon-ramab: #b45309;
+  --pastel-alerta: #be185d;
+  --ok: #059669;
+  --mal: #dc2626;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--fondo);
+  color: var(--texto);
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+header.top {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.7rem 1.2rem;
+  background: var(--panel);
+  border-bottom: 1px solid var(--linea);
+}
+header.top .marca {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+header.top nav { display: flex; gap: 0.4rem; margin-left: 1rem; }
+header.top nav a {
+  color: var(--texto-dim);
+  text-decoration: none;
+  padding: 0.4rem 0.7rem;
+  border-radius: 6px;
+}
+header.top nav a.activo, header.top nav a:hover {
+  color: var(--texto);
+  background: var(--panel-2);
+}
+#btn-tema {
+  margin-left: auto;
+  background: var(--panel-2);
+  color: var(--texto);
+  border: 1px solid var(--linea);
+  border-radius: 6px;
+  padding: 0.4rem 0.7rem;
+  cursor: pointer;
+}
+main { padding: 1.2rem; max-width: 1200px; margin: 0 auto; }
+.tarjetas { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+.tarjeta {
+  background: var(--panel);
+  border: 1px solid var(--linea);
+  border-radius: 10px;
+  padding: 1rem;
+}
+.tarjeta .valor { font-size: 2rem; font-variant-numeric: tabular-nums; }
+.b-troncal { color: var(--neon-troncal); }
+.b-ramaa { color: var(--neon-ramaa); }
+.b-ramab { color: var(--neon-ramab); }
+.dim { color: var(--texto-dim); }
+.estado { min-height: 1.2em; }
+@media (max-width: 640px) {
+  header.top { flex-wrap: wrap; }
+  main { padding: 0.8rem; }
+}

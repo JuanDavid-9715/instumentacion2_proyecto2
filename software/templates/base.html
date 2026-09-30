@@ -1,0 +1,32 @@
+{% load static %}<!doctype html>
+<html lang="es" data-tema="oscuro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block titulo %}Monitoreo Hídrico{% endblock %}</title>
+<link rel="stylesheet" href="{% static 'css/tema.css' %}">
+<script src="{% static 'js/tema.js' %}"></script>
+{% block extra_head %}{% endblock %}
+</head>
+<body>
+<header class="top">
+  <span class="marca">
+    <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true">
+      <path d="M13 2 C13 2 5 12 5 16.5 A8 8 0 0 0 21 16.5 C21 12 13 2 13 2 Z" fill="none" stroke="#22d3ee" stroke-width="2"/>
+      <path d="M9 16.5 h8 M13 12.5 v8" stroke="#34d399" stroke-width="1.6"/>
+    </svg>
+    {% block marca %}HYDROS{% endblock %}
+  </span>
+  <nav>
+    <a href="{% url 'panel' %}" class="{% if request.resolver_match.url_name == 'panel' %}activo{% endif %}">Panel</a>
+    <a href="{% url 'estadisticas' %}" class="{% if request.resolver_match.url_name == 'estadisticas' %}activo{% endif %}">Estadísticas</a>
+    <a href="{% url 'red' %}" class="{% if request.resolver_match.url_name == 'red' %}activo{% endif %}">Red</a>
+  </nav>
+  <button id="btn-tema" type="button">☀ Claro</button>
+</header>
+<main>
+{% block contenido %}{% endblock %}
+</main>
+{% block extra_js %}{% endblock %}
+</body>
+</html>
