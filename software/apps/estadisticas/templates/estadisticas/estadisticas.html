@@ -17,7 +17,7 @@
 
 <section class="chart-card">
   <h3 id="t-caja">Consumo típico por sensor</h3>
-  <p class="caption">La caja es el consumo típico (Q1–Q3), la línea la mediana, los bigotes el rango normal y los puntos los arranques.</p>
+  <p class="caption">La caja es el consumo típico (Q1–Q3), la línea la mediana y los bigotes van de mínimo a máximo.</p>
   <canvas id="g-caja" height="300"></canvas>
 </section>
 
@@ -152,26 +152,22 @@
     const mx = Math.max(0.5, ...ORDEN.map(k => stats[k].max));
     ejes(x, w, h, mx, 'L/min · misma escala');
     ORDEN.forEach((k, i) => {
-      const v = stats[k], cx = 140 + i * ((w - 160) / 3), bw = Math.min(110, (w - 160) / 3 - 60);
+      const v = stats[k], cx = 150 + i * ((w - 170) / 3), bw = Math.min(130, (w - 170) / 3 - 50);
       const Y = (val) => h - 26 - (val / mx) * (h - 44);
-      x.fillStyle = C[k] + '3d'; x.strokeStyle = C[k]; x.lineWidth = 2;
+      x.fillStyle = C[k] + '3d'; x.strokeStyle = C[k]; x.lineWidth = 2.5;
       const yq3 = Y(v.q3), yq1 = Y(v.q1);
-      x.fillRect(cx - bw / 2, yq3, bw, Math.max(3, yq1 - yq3));
-      x.strokeRect(cx - bw / 2, yq3, bw, Math.max(3, yq1 - yq3));
-      x.lineWidth = 2.5; x.beginPath(); x.moveTo(cx - bw / 2, Y(v.mediana)); x.lineTo(cx + bw / 2, Y(v.mediana)); x.stroke();
-      x.lineWidth = 1.5;
-      [[v.q3, v.w_sup], [v.q1, v.w_inf]].forEach(([a, b]) => {
-        x.beginPath(); x.moveTo(cx, Y(a)); x.lineTo(cx, Y(b)); x.stroke();
-        x.beginPath(); x.moveTo(cx - 22, Y(b)); x.lineTo(cx + 22, Y(b)); x.stroke();
-      });
-      x.fillStyle = C[k];
-      v.atipicos.slice(0, 40).forEach((p, j) => {
-        x.beginPath(); x.arc(cx - 30 + (j * 13) % 60, Y(p), 3, 0, 7); x.fill();
-      });
-      x.fillStyle = '#e8eef7'; x.font = 'bold 13px "Segoe UI", system-ui, sans-serif';
-      x.fillText(k, cx - 24, h - 8);
+      x.fillRect(cx - bw / 2, yq3, bw, Math.max(4, yq1 - yq3));
+      x.strokeRect(cx - bw / 2, yq3, bw, Math.max(4, yq1 - yq3));
+      x.lineWidth = 3.5; x.beginPath(); x.moveTo(cx - bw / 2, Y(v.mediana)); x.lineTo(cx + bw / 2, Y(v.mediana)); x.stroke();
+      x.lineWidth = 2;
+      x.beginPath(); x.moveTo(cx, yq3); x.lineTo(cx, Y(v.max)); x.stroke();
+      x.beginPath(); x.moveTo(cx, yq1); x.lineTo(cx, Y(v.min)); x.stroke();
+      [v.max, v.min].forEach(wv => { x.beginPath(); x.moveTo(cx - 26, Y(wv)); x.lineTo(cx + 26, Y(wv)); x.stroke(); });
+      x.fillStyle = '#e8eef7'; x.font = 'bold 14px "Segoe UI", system-ui, sans-serif';
+      x.fillText(k, cx - 26, h - 8);
       x.font = '12px "Segoe UI", system-ui, sans-serif';
-      x.fillStyle = C.dim; x.fillText('med ' + v.mediana, cx - 30, h - 24 - 8);
+      x.fillStyle = C.dim;
+      x.fillText(`mín ${v.min} · med ${v.mediana} · máx ${v.max}`, cx - 78, h - 26);
     });
   }
   function dibujarHist(hist) {
