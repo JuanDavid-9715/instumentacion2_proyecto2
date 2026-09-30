@@ -117,11 +117,12 @@ CHANNEL_LAYERS = (
 )
 
 
-# Database: Render/PostgreSQL vía DATABASE_URL si existe (F13),
+# Database: Render/PostgreSQL vía DATABASE_URL si existe y no está vacía (F13),
 # si no, SQLite local para desarrollo y pruebas en PC.
+_DB_URL = os.environ.get('DATABASE_URL') or f"sqlite:///{BASE_DIR / 'db.sqlite3'}"
 DATABASES = {
     'default': dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        default=_DB_URL,
         conn_max_age=600,
     )
 }
