@@ -13,6 +13,7 @@ __pycache__/
 *.pem
 *.key
 hardware/secrets.py
+hardware/vercion_antigua.py
 
 # Django / DB local
 *.sqlite3
