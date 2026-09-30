@@ -46,7 +46,16 @@ def _vals_periodo(codigo, dias):
     )
 
 
-def resumen_periodo(codigo, dias, max_pts=120):
+def _momentos(vals, media, desv):
+    n = len(vals)
+    if n < 3 or not desv:
+        return 0, -3
+    m3 = sum((v - media) ** 3 for v in vals) / n
+    m4 = sum((v - media) ** 4 for v in vals) / n
+    return round(m3 / desv ** 3, 3), round(m4 / desv ** 4 - 3, 3)
+
+
+def resumen_periodo(codigo, dias, max_pts=120, umbral_activo=0.05, bin_ancho=0.1):
     desde = timezone.now() - timezone.timedelta(days=dias)
     filas = list(
         Sensor.objects.get(codigo=codigo).lecturas
@@ -56,23 +65,42 @@ def resumen_periodo(codigo, dias, max_pts=120):
     vals = [r['q'] for r in filas]
     paso = max(1, len(filas) // max_pts)
     serie = [[r['ts_ingesta'].isoformat(), r['q']] for r in filas[::paso]]
+    base = {'n': 0, 'media': 0, 'mediana': 0, 'moda': None, 'desv': 0,
+            'min': 0, 'max': 0, 'q1': 0, 'q3': 0, 'iqr': 0,
+            'w_inf': 0, 'w_sup': 0, 'atipicos': [],
+            'duty': 0, 'media_act': 0, 'mediana_act': 0, 'p95': 0,
+            'deciles': [], 'hist': [], 'ojiva': [],
+            'asimetria': 0, 'curtosis': -3,
+            'acumulado': 0, 'serie': serie}
     if not vals:
-        return {'n': 0, 'media': 0, 'mediana': 0, 'moda': None, 'desv': 0,
-                'min': 0, 'max': 0, 'q1': 0, 'q3': 0, 'iqr': 0,
-                'w_inf': 0, 'w_sup': 0, 'atipicos': [],
-                'acumulado': 0, 'serie': []}
+        return base
     modas = statistics.multimode([round(v, 2) for v in vals])
     orden = sorted(vals)
     q1, med, q3 = statistics.quantiles(orden, n=4)
     iqr = q3 - q1
     lim_inf, lim_sup = q1 - 1.5 * iqr, q3 + 1.5 * iqr
     dentro = [v for v in vals if lim_inf <= v <= lim_sup]
-    return {
+    media = statistics.fmean(vals)
+    desv = statistics.stdev(vals) if len(vals) > 1 else 0
+    asim, curt = _momentos(vals, media, desv)
+    activos = [v for v in vals if v > umbral_activo]
+    p100 = statistics.quantiles(orden, n=100)
+    nbins = max(1, min(40, int((max(vals) - min(vals)) / bin_ancho) + 1))
+    b0 = min(vals)
+    hist = [0] * nbins
+    for v in vals:
+        hist[min(nbins - 1, int((v - b0) / bin_ancho))] += 1
+    oj = []
+    acc = 0
+    for c in hist:
+        acc += c
+        oj.append(round(acc / len(vals), 4))
+    base.update({
         'n': len(vals),
-        'media': round(statistics.fmean(vals), 3),
+        'media': round(media, 3),
         'mediana': round(med, 3),
         'moda': modas[0] if len(modas) == 1 else None,
-        'desv': round(statistics.stdev(vals), 3) if len(vals) > 1 else 0,
+        'desv': round(desv, 3),
         'min': round(min(vals), 3),
         'max': round(max(vals), 3),
         'q1': round(q1, 3),
@@ -81,9 +109,19 @@ def resumen_periodo(codigo, dias, max_pts=120):
         'w_inf': round(min(dentro), 3),
         'w_sup': round(max(dentro), 3),
         'atipicos': sorted(round(v, 3) for v in vals if v < lim_inf or v > lim_sup)[:50],
+        'duty': round(100 * len(activos) / len(vals), 1),
+        'media_act': round(statistics.fmean(activos), 3) if activos else 0,
+        'mediana_act': round(statistics.median(activos), 3) if activos else 0,
+        'p95': round(p100[94], 3),
+        'deciles': [round(p100[i * 10 - 1], 3) for i in range(1, 10)],
+        'hist': hist,
+        'hist_bin': [round(bin_ancho, 3), round(b0, 3)],
+        'ojiva': oj,
+        'asimetria': asim,
+        'curtosis': curt,
         'acumulado': round(sum(vals) / 60.0, 2),
-        'serie': serie,
-    }
+    })
+    return base
 
 
 def ultimos(codigo, n=60):
