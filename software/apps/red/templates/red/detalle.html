@@ -13,10 +13,10 @@
   <div class="tarjeta"><div class="dim">Máx hoy ({{ n_hoy }} muestras)</div><div class="valor">{{ max_hoy }} <small>L/min</small></div></div>
 </div>
 <h2>Evolución hoy</h2>
-<canvas id="g-det" width="900" height="260" style="width:100%;background:var(--panel);border:1px solid var(--linea);border-radius:10px"></canvas>
+<canvas id="g-det" height="260" style="width:100%;background:var(--panel);border:1px solid var(--linea);border-radius:10px"></canvas>
 <h2>Distribución hoy (caja)</h2>
 <p class="caption">Q1 {{ caja.q1 }} · mediana {{ caja.mediana }} · Q3 {{ caja.q3 }} L/min.</p>
-<canvas id="g-det-caja" width="400" height="220" style="max-width:460px;background:var(--panel);border:1px solid var(--linea);border-radius:10px"></canvas>
+<canvas id="g-det-caja" height="220" style="max-width:460px;width:100%;background:var(--panel);border:1px solid var(--linea);border-radius:10px"></canvas>
 {% if otro %}
 <h2>Contexto</h2>
 <p class="caption">La otra casa ({{ otro_cod }}) promedia {{ otro.prom_ref }} L/min en 7d frente a {{ prom_7d }} de esta.</p>
@@ -25,28 +25,47 @@
 {% block extra_js %}
 <script>
 (function () {
+  function prep(id) {
+    const c = document.getElementById(id), dpr = window.devicePixelRatio || 1;
+    const w = c.clientWidth || 800, h = parseInt(c.getAttribute('height'), 10) || 240;
+    c.width = w * dpr; c.height = h * dpr; c.style.height = h + 'px';
+    const x = c.getContext('2d');
+    x.setTransform(dpr, 0, 0, dpr, 0, 0);
+    x.font = '12px "Segoe UI", system-ui, sans-serif';
+    return [x, w, h];
+  }
   const serie = {{ serie|safe }};
   const col = getComputedStyle(document.documentElement).getPropertyValue('{{ color }}' === 'ramaa' ? '--neon-ramaa' : '--neon-ramab').trim();
-  const c = document.getElementById('g-det'), x = c.getContext('2d');
+  const [x, w, h] = prep('g-det');
   const vals = serie.map(p => p[1]), mx = Math.max(0.5, ...vals);
-  x.strokeStyle = col; x.lineWidth = 2.2; x.beginPath();
+  x.strokeStyle = '#24334f'; x.lineWidth = 1;
+  x.beginPath(); x.moveTo(48, 10); x.lineTo(48, h - 28); x.lineTo(w - 8, h - 28); x.stroke();
+  x.fillStyle = '#9fb0c9';
+  [0, 0.5, 1].forEach(f => x.fillText((mx * f).toFixed(1), 6, h - 28 - f * (h - 48) + 4));
+  x.fillText('L/min', 52, 22);
+  x.strokeStyle = col; x.lineWidth = 2.5; x.beginPath();
   serie.forEach(([t, v], i) => {
-    const px = 10 + i * (c.width - 20) / Math.max(1, serie.length - 1);
-    const py = c.height - 12 - (v / mx) * (c.height - 30);
+    const px = 52 + i * (w - 64) / Math.max(1, serie.length - 1);
+    const py = h - 28 - (v / mx) * (h - 48);
     i ? x.lineTo(px, py) : x.moveTo(px, py);
   });
   x.stroke();
-  const k = document.getElementById('g-det-caja'), kx = k.getContext('2d');
+  const [kx, kw, kh] = prep('g-det-caja');
   const q = { q1: {{ caja.q1 }}, med: {{ caja.mediana }}, q3: {{ caja.q3 }}, min: {{ caja.min }}, max: {{ caja.max }} };
-  const m2 = Math.max(0.5, q.max), Y = (v) => k.height - 20 - (v / m2) * (k.height - 48);
+  const m2 = Math.max(0.5, q.max), Y = (v) => kh - 26 - (v / m2) * (kh - 46);
+  const cx = kw / 2, bw = 100;
+  kx.strokeStyle = '#24334f'; kx.lineWidth = 1;
+  kx.beginPath(); kx.moveTo(44, 8); kx.lineTo(44, kh - 26); kx.lineTo(kw - 8, kh - 26); kx.stroke();
+  kx.fillStyle = '#9fb0c9';
+  [0, 0.5, 1].forEach(f => kx.fillText((m2 * f).toFixed(1), 4, Y(m2 * f) + 4));
   kx.fillStyle = col + '3d'; kx.strokeStyle = col; kx.lineWidth = 2.5;
-  kx.fillRect(150, Y(q.q3), 100, Math.max(4, Y(q.q1) - Y(q.q3)));
-  kx.strokeRect(150, Y(q.q3), 100, Math.max(4, Y(q.q1) - Y(q.q3)));
-  kx.lineWidth = 3.5; kx.beginPath(); kx.moveTo(150, Y(q.med)); kx.lineTo(250, Y(q.med)); kx.stroke();
+  kx.fillRect(cx - bw / 2, Y(q.q3), bw, Math.max(4, Y(q.q1) - Y(q.q3)));
+  kx.strokeRect(cx - bw / 2, Y(q.q3), bw, Math.max(4, Y(q.q1) - Y(q.q3)));
+  kx.lineWidth = 3.5; kx.beginPath(); kx.moveTo(cx - bw / 2, Y(q.med)); kx.lineTo(cx + bw / 2, Y(q.med)); kx.stroke();
   kx.lineWidth = 2;
-  kx.beginPath(); kx.moveTo(200, Y(q.q3)); kx.lineTo(200, Y(q.max)); kx.stroke();
-  kx.beginPath(); kx.moveTo(200, Y(q.q1)); kx.lineTo(200, Y(q.min)); kx.stroke();
-  [q.max, q.min].forEach(wv => { kx.beginPath(); kx.moveTo(174, Y(wv)); kx.lineTo(226, Y(wv)); kx.stroke(); });
+  kx.beginPath(); kx.moveTo(cx, Y(q.q3)); kx.lineTo(cx, Y(q.max)); kx.stroke();
+  kx.beginPath(); kx.moveTo(cx, Y(q.q1)); kx.lineTo(cx, Y(q.min)); kx.stroke();
+  [q.max, q.min].forEach(wv => { kx.beginPath(); kx.moveTo(cx - 26, Y(wv)); kx.lineTo(cx + 26, Y(wv)); kx.stroke(); });
 })();
 </script>
 {% endblock %}
