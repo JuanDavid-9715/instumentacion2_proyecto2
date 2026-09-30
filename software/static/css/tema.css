@@ -124,6 +124,20 @@ main { padding: 1.2rem; max-width: 1200px; margin: 0 auto; }
 .skip:focus { left: 0; }
 :focus-visible { outline: 2px solid var(--neon-troncal); outline-offset: 2px; }
 table { display: block; overflow-x: auto; }
+.tabla { display: table; width: 100%; border-collapse: collapse; }
+.tabla th, .tabla td { padding: 0.45rem 0.6rem; text-align: right; font-variant-numeric: tabular-nums; }
+.tabla th:first-child, .tabla td:first-child { text-align: left; }
+.tabla thead th { position: sticky; top: 0; background: var(--panel-2); }
+.tabla tbody tr:nth-child(even) { background: var(--panel-2); }
+.chart-card {
+  background: var(--panel); border: 1px solid var(--linea); border-radius: 12px;
+  padding: 1rem 1.2rem; margin: 1.2rem 0;
+}
+.chart-card h3 { margin: 0 0 0.2rem; font-size: 1.15rem; }
+.chart-card canvas { width: 100%; display: block; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+.grid2 .chart-card { margin: 0; }
+@media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
 .tubo { stroke: var(--linea); stroke-width: 10; stroke-linecap: round; fill: none; }
 .flujo {
   fill: none;

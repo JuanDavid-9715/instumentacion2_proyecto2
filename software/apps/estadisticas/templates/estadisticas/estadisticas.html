@@ -9,158 +9,196 @@
   <span class="dim">(actual: {{ periodo }})</span>
 </p>
 
-<h2>Indicadores del periodo</h2>
-<div class="tarjetas">
+<section class="tarjetas" aria-label="Indicadores del periodo">
   <div class="tarjeta"><div class="dim">Volumen troncal</div><div class="valor b-troncal" id="k-vol">—</div></div>
   <div class="tarjeta"><div class="dim">Pérdidas</div><div class="valor" id="k-perd">—</div></div>
   <div class="tarjeta"><div class="dim">Muestras</div><div class="valor" id="k-n">—</div></div>
+  <div class="tarjeta"><div class="dim">Tiempo con flujo</div><div class="valor" id="k-duty">—</div></div>
+</section>
+
+<section class="chart-card">
+  <h3 id="t-caja">Consumo típico por sensor</h3>
+  <p class="caption">La caja es el consumo típico (Q1–Q3), la línea la mediana, los bigotes el rango normal y los puntos los arranques.</p>
+  <canvas id="g-caja" height="300"></canvas>
+</section>
+
+<div class="grid2">
+<section class="chart-card">
+  <h3>Evolución temporal</h3>
+  <p class="caption">Cuándo hubo consumo. Picos = motor encendido; plano en 0 = reposo.</p>
+  <canvas id="g-lineas" height="240"></canvas>
+</section>
+<section class="chart-card">
+  <h3>Histograma por sensor</h3>
+  <p class="caption">Barra en 0 = reposo; joroba = consumo típico activo. Mismo eje para comparar.</p>
+  <canvas id="g-hist" height="240"></canvas>
+</section>
+<section class="chart-card">
+  <h3>Ojiva acumulada</h3>
+  <p class="caption">El 80% del tiempo el caudal fue ≤ X (línea guía).</p>
+  <canvas id="g-ojiva" height="240"></canvas>
+</section>
+<section class="chart-card">
+  <h3>Promedios y proporción</h3>
+  <p class="caption">Barras = quién consume más (T ≈ A+B). Pastel = de cada 100 L, cuántos llegan y cuántos se pierden.</p>
+  <canvas id="g-barras" height="180"></canvas>
+  <canvas id="g-pastel" height="200"></canvas>
+</section>
 </div>
 
-<h2>Evolución temporal</h2>
-<p class="caption">Cuándo hubo consumo. Picos = motor encendido; plano en 0 = red en reposo.</p>
-<canvas id="g-lineas" width="900" height="260" style="width:100%;background:var(--panel);border:1px solid var(--linea);border-radius:10px"></canvas>
+<section class="chart-card">
+  <h3>Tabla por sensor</h3>
+  <p class="caption">n = muestras · media/mediana = caudal típico · moda = valor más repetido (— = no unimodal) · desv = intermitencia · acum = volumen total.</p>
+  <table id="t-stats" class="tabla"><thead><tr><th>Sensor</th><th>n</th><th>media</th><th>mediana</th><th>moda</th><th>desv</th><th>mín</th><th>máx</th><th>acum L</th></tr></thead><tbody></tbody></table>
+</section>
 
-<h2>Caja y bigotes por sensor</h2>
-<p class="caption">La caja es el consumo típico (Q1–Q3), la línea es la mediana, los bigotes el rango normal y los puntos los transitorios de arranque.</p>
-<canvas id="g-caja" width="900" height="260" style="width:100%;background:var(--panel);border:1px solid var(--linea);border-radius:10px"></canvas>
-
-<h2>Histograma de caudales</h2>
-<p class="caption">Dónde vive el caudal: barra en 0 = reposo; joroba = consumo típico activo.</p>
-<canvas id="g-hist" width="900" height="220" style="width:100%;background:var(--panel);border:1px solid var(--linea);border-radius:10px"></canvas>
-
-<h2>Ojiva (frecuencia acumulada)</h2>
-<p class="caption">El 80% del tiempo el caudal fue ≤ X: lectura directa de percentiles.</p>
-<canvas id="g-ojiva" width="900" height="220" style="width:100%;background:var(--panel);border:1px solid var(--linea);border-radius:10px"></canvas>
-
-<h2>Forma y régimen</h2>
-<p class="caption">duty = % del tiempo con flujo · media activa = caudal cuando hay agua · P95 = caudal de diseño · asimetría&gt;0 = cola a derecha (arranques).</p>
-<table id="t-forma" border="1" cellpadding="6" style="border-collapse:collapse">
-  <thead><tr><th>Sensor</th><th>duty %</th><th>media act</th><th>mediana act</th><th>P95</th><th>asimetría</th><th>curtosis</th></tr></thead>
-  <tbody></tbody>
-</table>
-
-<h2>Promedios comparados</h2>
-<p class="caption">Quién consume más en promedio. Troncal debería ≈ A + B.</p>
-<canvas id="g-barras" width="900" height="220" style="width:100%;background:var(--panel);border:1px solid var(--linea);border-radius:10px"></canvas>
-
-<h2>Proporción del volumen</h2>
-<p class="caption">De cada 100 L que salen del troncal, cuántos llegan a cada casa y cuántos se pierden.</p>
-<canvas id="g-pastel" width="400" height="260" style="max-width:420px;background:var(--panel);border:1px solid var(--linea);border-radius:10px"></canvas>
-
-<h2>Tabla por sensor</h2>
-<p class="caption">n = muestras · media/mediana = caudal típico · moda = valor más repetido · desv = qué tan intermitente · acum = volumen total.</p>
-<table id="t-stats" border="1" cellpadding="6" style="border-collapse:collapse">
-  <thead><tr><th>Sensor</th><th>n</th><th>media</th><th>mediana</th><th>moda</th><th>desv</th><th>mín</th><th>máx</th><th>acum L</th></tr></thead>
-  <tbody></tbody>
-</table>
+<section class="chart-card">
+  <h3>Forma y régimen</h3>
+  <p class="caption">duty = % del tiempo con flujo · media activa = caudal cuando hay agua · P95 = caudal de diseño · asimetría&gt;0 = cola a derecha.</p>
+  <table id="t-forma" class="tabla"><thead><tr><th>Sensor</th><th>duty %</th><th>media act</th><th>mediana act</th><th>P95</th><th>asimetría</th><th>curtosis</th></tr></thead><tbody></tbody></table>
+</section>
 {% endblock %}
 {% block extra_js %}
 <script>
 (function () {
   const per = new URLSearchParams(location.search).get('periodo') || 'hoy';
   const css = getComputedStyle(document.documentElement);
-  const colores = {
+  const C = {
     troncal: css.getPropertyValue('--neon-troncal').trim() || '#22d3ee',
     rama_a: css.getPropertyValue('--neon-ramaa').trim() || '#34d399',
-    rama_b: css.getPropertyValue('--neon-ramab').trim() || '#fbbf24'
+    rama_b: css.getPropertyValue('--neon-ramab').trim() || '#fbbf24',
+    dim: '#9fb0c9'
   };
+  const ORDEN = ['troncal', 'rama_a', 'rama_b'];
+  function prep(id) {
+    const c = document.getElementById(id), dpr = window.devicePixelRatio || 1;
+    const w = c.clientWidth || 800, h = parseInt(c.getAttribute('height'), 10) || 240;
+    c.width = w * dpr; c.height = h * dpr;
+    c.style.height = h + 'px';
+    const x = c.getContext('2d');
+    x.setTransform(dpr, 0, 0, dpr, 0, 0);
+    x.font = '12px "Segoe UI", system-ui, sans-serif';
+    return [x, w, h];
+  }
+  function ejes(x, w, h, ymax, ylabel) {
+    x.strokeStyle = '#24334f'; x.lineWidth = 1;
+    x.beginPath(); x.moveTo(44, 8); x.lineTo(44, h - 26); x.lineTo(w - 8, h - 26); x.stroke();
+    x.fillStyle = C.dim;
+    [0, 0.5, 1].forEach(f => {
+      const v = (ymax * f).toFixed(1), py = h - 26 - f * (h - 44);
+      x.fillText(v, 4, py + 4);
+      x.strokeStyle = '#1a2740'; x.beginPath(); x.moveTo(44, py); x.lineTo(w - 8, py); x.stroke();
+    });
+    x.fillStyle = C.dim; x.fillText(ylabel, 48, 20);
+  }
   function dibujarLineas(series) {
-    const c = document.getElementById('g-lineas'), x = c.getContext('2d');
-    x.clearRect(0, 0, c.width, c.height);
+    const [x, w, h] = prep('g-lineas');
     const todas = [].concat(...Object.values(series).map(s => s.map(p => p[1])));
-    const mx = Math.max(1, ...todas);
-    Object.entries(series).forEach(([k, pts]) => {
-      x.strokeStyle = colores[k]; x.lineWidth = 1.6; x.beginPath();
+    const mx = Math.max(0.5, ...todas);
+    ejes(x, w, h, mx, 'L/min');
+    ORDEN.forEach(k => {
+      const pts = series[k] || [];
+      x.strokeStyle = C[k]; x.lineWidth = 1.8; x.beginPath();
       pts.forEach(([t, v], i) => {
-        const px = 10 + i * (c.width - 20) / Math.max(1, pts.length - 1);
-        const py = c.height - 12 - (v / mx) * (c.height - 30);
+        const px = 48 + i * (w - 60) / Math.max(1, pts.length - 1);
+        const py = h - 26 - (v / mx) * (h - 44);
         i ? x.lineTo(px, py) : x.moveTo(px, py);
       });
       x.stroke();
+      if (pts.length) x.fillText(k, w - 70, h - 26 - (pts[pts.length - 1][1] / mx) * (h - 44));
     });
   }
   function dibujarCaja(stats) {
-    const c = document.getElementById('g-caja'), x = c.getContext('2d');
-    x.clearRect(0, 0, c.width, c.height);
-    const ks = Object.keys(stats), mx = Math.max(1, ...ks.map(k => stats[k].max));
-    const Y = (v) => c.height - 20 - (v / mx) * (c.height - 50);
-    ks.forEach((k, i) => {
-      const v = stats[k], cx = 120 + i * 300, w = 90;
-      x.strokeStyle = colores[k]; x.fillStyle = colores[k] + '44'; x.lineWidth = 2;
-      x.strokeRect(cx - w / 2, Y(v.q3), w, Math.max(2, Y(v.q1) - Y(v.q3)));
-      x.fillRect(cx - w / 2, Y(v.q3), w, Math.max(2, Y(v.q1) - Y(v.q3)));
-      x.beginPath(); x.moveTo(cx - w / 2, Y(v.mediana)); x.lineTo(cx + w / 2, Y(v.mediana)); x.stroke();
-      x.lineWidth = 1.4;
-      x.beginPath(); x.moveTo(cx, Y(v.q3)); x.lineTo(cx, Y(v.w_sup)); x.stroke();
-      x.beginPath(); x.moveTo(cx, Y(v.q1)); x.lineTo(cx, Y(v.w_inf)); x.stroke();
-      [v.w_sup, v.w_inf].forEach(wv => { x.beginPath(); x.moveTo(cx - 20, Y(wv)); x.lineTo(cx + 20, Y(wv)); x.stroke(); });
-      x.fillStyle = colores[k];
-      v.atipicos.slice(0, 30).forEach(p => { x.beginPath(); x.arc(cx + (p % 7) * 8 - 24, Y(p), 2.5, 0, 7); x.fill(); });
-      x.fillStyle = '#9fb0c9'; x.fillText(k + ' med ' + v.mediana, cx - 45, c.height - 4);
-    });
-  }
-  function dibujarBarras(proms) {    const c = document.getElementById('g-barras'), x = c.getContext('2d');
-    x.clearRect(0, 0, c.width, c.height);
-    const ks = Object.keys(proms), mx = Math.max(1, ...Object.values(proms));
-    ks.forEach((k, i) => {
-      const w = (c.width - 40) / ks.length, h = (proms[k] / mx) * (c.height - 60);
-      x.fillStyle = colores[k];
-      x.fillRect(20 + i * w + 8, c.height - 30 - h, w - 16, h);
-      x.fillStyle = '#9fb0c9'; x.fillText(k + ' ' + proms[k], 20 + i * w + 8, c.height - 12);
-    });
-  }
-  function dibujarPastel(acums) {
-    const c = document.getElementById('g-pastel'), x = c.getContext('2d');
-    x.clearRect(0, 0, c.width, c.height);
-    const ks = Object.keys(acums), tot = Math.max(1e-9, Object.values(acums).reduce((a, b) => a + b, 0));
-    let a0 = -Math.PI / 2;
-    ks.forEach(k => {
-      const a1 = a0 + (acums[k] / tot) * Math.PI * 2;
-      x.fillStyle = colores[k]; x.beginPath();
-      x.moveTo(200, 130); x.arc(200, 130, 100, a0, a1); x.fill();
-      a0 = a1;
-    });
-  }
-  function dibujarHist(hist, bin) {
-    const c = document.getElementById('g-hist'), x = c.getContext('2d');
-    x.clearRect(0, 0, c.width, c.height);
-    const ks = Object.keys(hist), mx = Math.max(1, ...ks.map(k => Math.max(...hist[k])));
-    const cols = [colores.troncal, colores.rama_a, colores.rama_b];
-    ks.forEach((k, si) => {
-      const h = hist[k], bw = (c.width - 40) / h.length;
-      h.forEach((v, i) => {
-        const bh = (v / mx) * (c.height - 60);
-        x.fillStyle = cols[si % 3]; x.globalAlpha = 0.75;
-        x.fillRect(20 + i * bw + si * 2, c.height - 30 - bh, bw - 5, bh);
-        x.globalAlpha = 1;
+    const [x, w, h] = prep('g-caja');
+    const mx = Math.max(0.5, ...ORDEN.map(k => stats[k].max));
+    ejes(x, w, h, mx, 'L/min · misma escala');
+    ORDEN.forEach((k, i) => {
+      const v = stats[k], cx = 140 + i * ((w - 160) / 3), bw = Math.min(110, (w - 160) / 3 - 60);
+      const Y = (val) => h - 26 - (val / mx) * (h - 44);
+      x.fillStyle = C[k] + '3d'; x.strokeStyle = C[k]; x.lineWidth = 2;
+      const yq3 = Y(v.q3), yq1 = Y(v.q1);
+      x.fillRect(cx - bw / 2, yq3, bw, Math.max(3, yq1 - yq3));
+      x.strokeRect(cx - bw / 2, yq3, bw, Math.max(3, yq1 - yq3));
+      x.lineWidth = 2.5; x.beginPath(); x.moveTo(cx - bw / 2, Y(v.mediana)); x.lineTo(cx + bw / 2, Y(v.mediana)); x.stroke();
+      x.lineWidth = 1.5;
+      [[v.q3, v.w_sup], [v.q1, v.w_inf]].forEach(([a, b]) => {
+        x.beginPath(); x.moveTo(cx, Y(a)); x.lineTo(cx, Y(b)); x.stroke();
+        x.beginPath(); x.moveTo(cx - 22, Y(b)); x.lineTo(cx + 22, Y(b)); x.stroke();
       });
-      x.fillStyle = '#9fb0c9'; x.fillText(k, 24 + si * 90, 16);
+      x.fillStyle = C[k];
+      v.atipicos.slice(0, 40).forEach((p, j) => {
+        x.beginPath(); x.arc(cx - 30 + (j * 13) % 60, Y(p), 3, 0, 7); x.fill();
+      });
+      x.fillStyle = '#e8eef7'; x.font = 'bold 13px "Segoe UI", system-ui, sans-serif';
+      x.fillText(k, cx - 24, h - 8);
+      x.font = '12px "Segoe UI", system-ui, sans-serif';
+      x.fillStyle = C.dim; x.fillText('med ' + v.mediana, cx - 30, h - 24 - 8);
+    });
+  }
+  function dibujarHist(hist) {
+    const [x, w, h] = prep('g-hist');
+    const rows = 3, rh = (h - 16) / rows;
+    ORDEN.forEach((k, si) => {
+      const hh = hist[k] || [], mx = Math.max(1, ...hh);
+      const y0 = 8 + si * rh;
+      x.fillStyle = '#e8eef7'; x.fillText(k, 4, y0 + 14);
+      hh.forEach((v, i) => {
+        const bw = (w - 120) / hh.length, bh = (v / mx) * (rh - 30);
+        x.fillStyle = C[k];
+        x.fillRect(70 + i * bw, y0 + rh - 18 - bh, Math.max(1, bw - 1), bh);
+      });
+      x.fillStyle = C.dim; x.fillText('0', 70, y0 + rh - 4);
     });
   }
   function dibujarOjiva(ojivas) {
-    const c = document.getElementById('g-ojiva'), x = c.getContext('2d');
-    x.clearRect(0, 0, c.width, c.height);
+    const [x, w, h] = prep('g-ojiva');
+    ejes(x, w, h, 1, 'fracción acumulada');
     Object.entries(ojivas).forEach(([k, oj]) => {
-      x.strokeStyle = colores[k]; x.lineWidth = 1.8; x.beginPath();
+      x.strokeStyle = C[k]; x.lineWidth = 2; x.beginPath();
       oj.forEach((v, i) => {
-        const px = 30 + i * (c.width - 50) / Math.max(1, oj.length - 1);
-        const py = c.height - 25 - v * (c.height - 50);
+        const px = 48 + i * (w - 60) / Math.max(1, oj.length - 1);
+        const py = h - 26 - v * (h - 44);
         i ? x.lineTo(px, py) : x.moveTo(px, py);
       });
       x.stroke();
+      x.fillStyle = C[k]; x.fillText(k, w - 60, h - 26 - oj[oj.length - 1] * (h - 44) - 6);
     });
-    x.strokeStyle = '#9fb0c9'; x.setLineDash([4, 4]); x.beginPath();
-    const py80 = c.height - 25 - 0.8 * (c.height - 50);
-    x.moveTo(30, py80); x.lineTo(c.width - 20, py80); x.stroke(); x.setLineDash([]);
-    x.fillStyle = '#9fb0c9'; x.fillText('80%', 4, py80 + 4);
+    const py80 = h - 26 - 0.8 * (h - 44);
+    x.strokeStyle = C.dim; x.setLineDash([5, 5]);
+    x.beginPath(); x.moveTo(48, py80); x.lineTo(w - 8, py80); x.stroke(); x.setLineDash([]);
+  }
+  function dibujarBarras(proms) {
+    const [x, w, h] = prep('g-barras');
+    const mx = Math.max(0.5, ...Object.values(proms));
+    ejes(x, w, h, mx, 'L/min');
+    ORDEN.forEach((k, i) => {
+      const bw = (w - 80) / 3, bh = (proms[k] / mx) * (h - 60);
+      x.fillStyle = C[k];
+      x.fillRect(60 + i * bw + 10, h - 26 - bh, bw - 20, bh);
+      x.fillStyle = '#e8eef7'; x.fillText(k + ' ' + proms[k], 60 + i * bw + 10, h - 10);
+    });
+  }
+  function dibujarPastel(acums) {
+    const [x, w, h] = prep('g-pastel');
+    const ks = Object.keys(acums), tot = Math.max(1e-9, Object.values(acums).reduce((a, b) => a + b, 0));
+    const cx = w / 2 - 60, cy = h / 2, r = Math.min(80, h / 2 - 16);
+    let a0 = -Math.PI / 2, lx = cx + r + 18, ly = 24;
+    ks.forEach(k => {
+      const a1 = a0 + (acums[k] / tot) * Math.PI * 2;
+      x.fillStyle = C[k]; x.beginPath(); x.moveTo(cx, cy); x.arc(cx, cy, r, a0, a1); x.fill();
+      x.fillStyle = '#e8eef7'; x.fillRect(lx, ly, 12, 12);
+      x.fillStyle = C.dim; x.fillText(`${k} ${(100 * acums[k] / tot).toFixed(0)}%`, lx + 18, ly + 11);
+      ly += 22; a0 = a1;
+    });
   }
   fetch('/estadisticas/datos/?periodo=' + per).then(r => r.json()).then(j => {
     const s = j.sensores, series = {}, proms = {}, acums = {}, stats = {}, hist = {}, ojivas = {};
     const tb = document.querySelector('#t-stats tbody');
     const tf = document.querySelector('#t-forma tbody');
-    let total = 0;
+    let total = 0, dutyMax = 0, dutyK = '';
     Object.entries(s).forEach(([k, v]) => {
       total += v.n;
+      if (v.duty > dutyMax) { dutyMax = v.duty; dutyK = k; }
       series[k] = v.serie; proms[k] = v.media; acums[k] = v.acumulado;
       stats[k] = v; hist[k] = v.hist; ojivas[k] = v.ojiva;
       const tr = document.createElement('tr');
@@ -173,10 +211,14 @@
     document.getElementById('k-vol').textContent = j.volumen_total + ' L';
     document.getElementById('k-perd').textContent = j.perdidas + ' L (' + j.pct_perdida + '%)';
     document.getElementById('k-n').textContent = total;
-    dibujarLineas(series); dibujarCaja(stats); dibujarHist(hist); dibujarOjiva(ojivas); dibujarBarras(proms); dibujarPastel(acums);
+    document.getElementById('k-duty').textContent = dutyK ? `${dutyK} ${dutyMax}%` : '—';
+    document.getElementById('t-caja').textContent =
+      Math.abs(j.pct_perdida) < 15 ? 'Consumo típico por sensor' : `Pérdidas ${j.pct_perdida}%: la red pierde agua`;
+    dibujarLineas(series); dibujarCaja(stats); dibujarHist(hist); dibujarOjiva(ojivas);
+    dibujarBarras(proms); dibujarPastel(acums);
     if (!total) {
       const tr = document.createElement('tr');
-      tr.innerHTML = '<td colspan="9">Sin datos en este periodo: enciende el nodo y corre listen_mqtt.</td>';
+      tr.innerHTML = '<td colspan="9">Sin datos en este periodo: enciende el nodo y arranca Daphne.</td>';
       tb.appendChild(tr);
     }
   }).catch(() => {
