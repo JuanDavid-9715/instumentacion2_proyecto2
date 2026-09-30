@@ -1,72 +1,64 @@
 {% extends "base.html" %}
 {% block titulo %}HYDROS · Panel{% endblock %}
 {% block contenido %}
-<h1>Panel · ¿cómo está la red ahora?</h1>
-
-<section class="tarjeta hero">
+<section class="heroe" aria-label="Estado actual de la red">
   <div>
-    <div class="dim">TRONCAL · caudal actual</div>
-    <div class="valor hero-valor b-troncal"><span id="v-troncal">{{ troncal.actual }}</span> <small>L/min</small></div>
-    <div class="dim">Acumulado hoy: <strong id="a-troncal">{{ troncal.acumulado }}</strong> L · prom {{ troncal.promedio }} · máx {{ troncal.maximo }}</div>
+    <div class="dim" id="h-estado-linea">Troncal · en vivo</div>
+    <div class="heroe-valor b-troncal"><span id="v-troncal">{{ troncal.actual }}</span> <small>L/min</small></div>
+    <div class="dim"><span id="v-frescura" aria-live="polite">—</span> · hoy <strong id="a-troncal">{{ troncal.acumulado }}</strong> L</div>
   </div>
   <div>
-    <canvas id="spark" width="320" height="90" aria-label="Últimos 60 valores del troncal"></canvas>
-    <div class="dim">Últimos 60 s · <span id="ws-hace" aria-live="polite">—</span></div>
+    <canvas id="spark" width="360" height="110" aria-label="Caudal del troncal, últimos 60 segundos"></canvas>
   </div>
-  <div>
-    <div class="dim">Estado red</div>
-    <div class="valor" id="v-est">{{ estado }}</div>
-    <div class="dim">Bomba: <span id="v-bomba">{{ bomba }}</span> (empresa)</div>
+  <div class="heroe-estado">
+    <div class="dim">Red</div>
+    <div class="heroe-semaforo" id="v-est">{{ estado }}</div>
+    <div class="dim">Bomba: <span id="v-bomba">{{ bomba }}</span></div>
   </div>
 </section>
 
-<h2>Balance hídrico de hoy</h2>
-<p class="caption">Troncal − (Casa A + Casa B) = pérdidas. Si el % supera 15%, la red necesita revisión.</p>
-<div class="tarjetas">
-  <div class="tarjeta">
-    <div class="dim">Pérdidas</div>
-    <div class="valor"><span id="v-perd">{{ perdidas }}</span> <small>L</small></div>
-    <div class="dim"><span id="v-pct">{{ pct_perdida }}</span>% del troncal</div>
+<section aria-label="Balance hídrico de hoy">
+  <h2 id="t-balance">Balance de hoy: {{ perdidas }} L ({{ pct_perdida }}%)</h2>
+  <p class="caption">Cada 100 L que salen del troncal: una parte llega a cada casa y el resto se pierde en la red.</p>
+  <div class="reparto" role="img" aria-label="Reparto del agua de hoy">
+    <span class="rep-a" id="rep-a"></span><span class="rep-b" id="rep-b"></span><span class="rep-p" id="rep-p"></span>
   </div>
-  <div class="tarjeta">
-    <div class="dim">Reparto de hoy (L)</div>
-    <div id="barra-reparto" aria-label="Reparto del agua">T {{ troncal.acumulado }} · A {{ rama_a.acumulado }} · B {{ rama_b.acumulado }}</div>
-  </div>
-</div>
+  <p class="dim" id="rep-leyenda"></p>
+</section>
 
-<h2>Casas · ¿quién consume?</h2>
-<div class="tarjetas">
-  <div class="tarjeta">
-    <a href="{% url 'detalle' 'rama_a' %}" style="color:inherit;text-decoration:none">
-      <div class="dim">CASA A · actual</div>
-      <div class="valor b-ramaa"><span id="v-ramaa">{{ rama_a.actual }}</span> <small>L/min</small></div>
-      <div class="dim">Hoy <span id="a-ramaa">{{ rama_a.acumulado }}</span> L · prom {{ rama_a.promedio }}</div>
+<section aria-label="Diagrama de la red">
+  <h2>Red en vivo</h2>
+  <svg viewBox="0 0 640 240" style="width:100%;background:var(--panel);border:1px solid var(--linea);border-radius:10px" role="img" aria-label="Diagrama troncal a ramas">
+    <path class="tubo" d="M30 120 H270" />
+    <path id="f-troncal" class="flujo flujo-t" d="M30 120 H270" />
+    <circle cx="280" cy="120" r="10" fill="none" stroke="#9fb0c9" stroke-width="2" />
+    <path class="tubo" d="M290 120 H400 V60 H590" />
+    <path id="f-ramaa" class="flujo flujo-a" d="M290 120 H400 V60 H590" />
+    <path class="tubo" d="M290 120 H400 V180 H590" />
+    <path id="f-ramab" class="flujo flujo-b" d="M290 120 H400 V180 H590" />
+    <text x="30" y="105" fill="#9fb0c9" font-size="13">TRONCAL <tspan id="s-troncal">{{ troncal.actual }}</tspan></text>
+    <text x="470" y="45" fill="#9fb0c9" font-size="13">CASA A <tspan id="s-ramaa">{{ rama_a.actual }}</tspan></text>
+    <text x="470" y="205" fill="#9fb0c9" font-size="13">CASA B <tspan id="s-ramab">{{ rama_b.actual }}</tspan></text>
+  </svg>
+</section>
+
+<section aria-label="Casas">
+  <h2>Casas</h2>
+  <div class="filas">
+    <a class="fila" href="{% url 'detalle' 'rama_a' %}">
+      <span class="fila-nombre b-ramaa">Casa A</span>
+      <span class="fila-valor"><span id="v-ramaa">{{ rama_a.actual }}</span> L/min</span>
+      <span class="dim">hoy <span id="a-ramaa">{{ rama_a.acumulado }}</span> L</span>
+    </a>
+    <a class="fila" href="{% url 'detalle' 'rama_b' %}">
+      <span class="fila-nombre b-ramab">Casa B</span>
+      <span class="fila-valor"><span id="v-ramab">{{ rama_b.actual }}</span> L/min</span>
+      <span class="dim">hoy <span id="a-ramab">{{ rama_b.acumulado }}</span> L</span>
     </a>
   </div>
-  <div class="tarjeta">
-    <a href="{% url 'detalle' 'rama_b' %}" style="color:inherit;text-decoration:none">
-      <div class="dim">CASA B · actual</div>
-      <div class="valor b-ramab"><span id="v-ramab">{{ rama_b.actual }}</span> <small>L/min</small></div>
-      <div class="dim">Hoy <span id="a-ramab">{{ rama_b.acumulado }}</span> L · prom {{ rama_b.promedio }}</div>
-    </a>
-  </div>
-</div>
+</section>
 
-<h2>Diagrama de red</h2>
-<p class="caption">Grosor y velocidad del flujo ∝ caudal en vivo.</p>
-<svg viewBox="0 0 640 240" style="width:100%;background:var(--panel);border:1px solid var(--linea);border-radius:10px" role="img" aria-label="Diagrama troncal a ramas">
-  <path class="tubo" d="M30 120 H270" />
-  <path id="f-troncal" class="flujo flujo-t" d="M30 120 H270" />
-  <circle cx="280" cy="120" r="10" fill="none" stroke="#9fb0c9" stroke-width="2" />
-  <path class="tubo" d="M290 120 H400 V60 H590" />
-  <path id="f-ramaa" class="flujo flujo-a" d="M290 120 H400 V60 H590" />
-  <path class="tubo" d="M290 120 H400 V180 H590" />
-  <path id="f-ramab" class="flujo flujo-b" d="M290 120 H400 V180 H590" />
-  <text x="30" y="105" fill="#9fb0c9" font-size="13">TRONCAL <tspan id="s-troncal">{{ troncal.actual }}</tspan> L/min</text>
-  <text x="470" y="45" fill="#9fb0c9" font-size="13">CASA A <tspan id="s-ramaa">{{ rama_a.actual }}</tspan></text>
-  <text x="470" y="205" fill="#9fb0c9" font-size="13">CASA B <tspan id="s-ramab">{{ rama_b.actual }}</tspan></text>
-</svg>
-<p class="dim estado" id="ws-est" aria-live="polite">WS: conectando…</p>
+<p class="dim estado" id="ws-est" aria-live="polite">Sondeo cada 2 s…</p>
 {% if troncal.n == 0 and rama_a.n == 0 and rama_b.n == 0 %}
 <p class="dim">Sin lecturas hoy: enciende el nodo ESP32 y corre <code>listen_mqtt</code> en el servidor.</p>
 {% endif %}
@@ -74,71 +66,66 @@
 {% block extra_js %}
 <script>
 (function () {
-  const est = document.getElementById('ws-est');
-  const hace = document.getElementById('ws-hace');
-  const url = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/flujos/';
   const spark = {{ spark|safe }};
-  let intento = 0, ultimoVivo = 0;
+  const $ = (id) => document.getElementById(id);
   function tramo(idV, idS, idF, v) {
-    document.getElementById(idV).textContent = v.toFixed(3);
-    const s = document.getElementById(idS);
+    $(idV).textContent = v.toFixed(3);
+    const s = $(idS);
     if (s) s.textContent = v.toFixed(3);
-    const f = document.getElementById(idF);
+    const f = $(idF);
     if (f) {
       f.style.strokeWidth = (1.5 + Math.min(6, v)).toFixed(1);
       f.style.animationDuration = Math.max(0.25, 1.6 - Math.min(1.3, v * 0.15)).toFixed(2) + 's';
     }
   }
   function dibujarSpark() {
-    const c = document.getElementById('spark'), x = c.getContext('2d');
+    const c = $('spark'), x = c.getContext('2d');
     x.clearRect(0, 0, c.width, c.height);
     const mx = Math.max(0.5, ...spark);
-    x.strokeStyle = '#22d3ee'; x.lineWidth = 1.8; x.beginPath();
+    x.strokeStyle = '#22d3ee'; x.lineWidth = 2; x.beginPath();
     spark.forEach((v, i) => {
       const px = 6 + i * (c.width - 12) / 59, py = c.height - 8 - (v / mx) * (c.height - 16);
       i ? x.lineTo(px, py) : x.moveTo(px, py);
     });
     x.stroke();
   }
+  function pinta(j) {
+    const a = j.actual;
+    if (a.troncal) { tramo('v-troncal', 's-troncal', 'f-troncal', a.troncal.q); spark.push(a.troncal.q); spark.shift(); dibujarSpark(); }
+    if (a.rama_a) tramo('v-ramaa', 's-ramaa', 'f-ramaa', a.rama_a.q);
+    if (a.rama_b) tramo('v-ramab', 's-ramab', 'f-ramab', a.rama_b.q);
+    $('a-troncal').textContent = j.acumulado.troncal;
+    $('a-ramaa').textContent = j.acumulado.rama_a;
+    $('a-ramab').textContent = j.acumulado.rama_b;
+    $('v-bomba').textContent = j.bomba;
+    const est = $('v-est');
+    est.textContent = j.nodo_ok ? j.estado : 'SIN DATOS';
+    est.className = 'heroe-semaforo sem-' + (j.nodo_ok ? j.estado : 'SIN DATOS');
+    $('t-balance').textContent = j.nodo_ok
+      ? `Balance de hoy: ${j.perdidas} L (${j.pct_perdida}%)`
+      : 'Balance de hoy: sin datos del nodo';
+    const tot = Math.max(1e-9, j.acumulado.troncal);
+    const pa = 100 * j.acumulado.rama_a / tot, pb = 100 * j.acumulado.rama_b / tot;
+    $('rep-a').style.width = pa + '%'; $('rep-b').style.width = pb + '%';
+    $('rep-p').style.width = Math.max(0, 100 - pa - pb) + '%';
+    $('rep-leyenda').textContent = `Casa A ${pa.toFixed(0)}% · Casa B ${pb.toFixed(0)}% · Pérdida ${Math.max(0, 100 - pa - pb).toFixed(0)}%`;
+    $('v-frescura').textContent = j.seg_desde_muestra == null ? 'sin muestras' : ('hace ' + j.seg_desde_muestra + ' s');
+    $('ws-est').textContent = j.nodo_ok ? 'En vivo · sondeo 2 s' : 'Nodo caído: enciende el ESP32 y corre listen_mqtt';
+  }
   dibujarSpark();
-  function conectar() {
-    const ws = new WebSocket(url);
-    ws.onopen = () => { est.textContent = 'WS: en vivo'; intento = 0; };
-    ws.onclose = () => {
-      intento += 1;
-      est.textContent = 'WS: sondeo 2s (canal en memoria local)';
-      setTimeout(conectar, Math.min(15000, 1000 * intento));
-    };
-    ws.onerror = () => { ws.close(); };
+  function ciclo() { fetch('/panel/datos/').then(r => r.json()).then(pinta).catch(() => {}); }
+  ciclo();
+  setInterval(ciclo, 2000);
+  try {
+    const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/flujos/');
     ws.onmessage = (e) => {
       const d = (JSON.parse(e.data).datos) || {};
-      if (d.troncal || d.rama_a || d.rama_b || d.bomba) ultimoVivo = Date.now();
       if (d.troncal) { tramo('v-troncal', 's-troncal', 'f-troncal', d.troncal.q); spark.push(d.troncal.q); spark.shift(); dibujarSpark(); }
       if (d.rama_a) tramo('v-ramaa', 's-ramaa', 'f-ramaa', d.rama_a.q);
       if (d.rama_b) tramo('v-ramab', 's-ramab', 'f-ramab', d.rama_b.q);
-      if (d.bomba) document.getElementById('v-bomba').textContent = d.bomba;
+      if (d.bomba) $('v-bomba').textContent = d.bomba;
     };
-  }
-  conectar();
-  setInterval(() => {
-    hace.textContent = ultimoVivo ? ('actualizado hace ' + Math.round((Date.now() - ultimoVivo) / 1000) + ' s') : 'sin datos aún';
-    if (Date.now() - ultimoVivo < 3000) return;
-    fetch('/estadisticas/datos/?periodo=hoy').then(r => r.json()).then(j => {
-      const s = j.sensores;
-      const ult = (k) => (s[k].serie.slice(-1)[0] || [0, 0])[1];
-      tramo('v-troncal', 's-troncal', 'f-troncal', ult('troncal'));
-      tramo('v-ramaa', 's-ramaa', 'f-ramaa', ult('rama_a'));
-      tramo('v-ramab', 's-ramab', 'f-ramab', ult('rama_b'));
-      document.getElementById('a-troncal').textContent = s.troncal.acumulado;
-      document.getElementById('a-ramaa').textContent = s.rama_a.acumulado;
-      document.getElementById('a-ramab').textContent = s.rama_b.acumulado;
-      document.getElementById('v-perd').textContent = j.perdidas;
-      document.getElementById('v-pct').textContent = j.pct_perdida;
-      document.getElementById('v-est').textContent = Math.abs(j.pct_perdida) < 15 ? 'OK' : 'REVISAR';
-      spark.push(ult('troncal')); spark.shift(); dibujarSpark();
-      ultimoVivo = Date.now();
-    }).catch(() => {});
-  }, 2000);
+  } catch (e) {}
 })();
 </script>
 {% endblock %}
