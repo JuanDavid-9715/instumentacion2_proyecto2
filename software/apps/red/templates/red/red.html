@@ -32,20 +32,35 @@
   document.getElementById('t-nueva').addEventListener('click', () => alert('Alta de casa: solo UI en esta fase.'));
   const est = document.getElementById('ws-est');
   const url = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/flujos/';
-  let intento = 0;
+  let intento = 0, ultimoVivo = 0;
+  function pintar(d) {
+    if (d.rama_a) document.getElementById('v-rama_a').textContent = d.rama_a.q.toFixed(3);
+    if (d.rama_b) document.getElementById('v-rama_b').textContent = d.rama_b.q.toFixed(3);
+    if (d.bomba) document.getElementById('v-bomba').textContent = d.bomba;
+  }
   function conectar() {
     const ws = new WebSocket(url);
     ws.onopen = () => { est.textContent = 'WS: en vivo'; intento = 0; };
-    ws.onclose = () => { intento += 1; est.textContent = 'WS: desconectado — reintentando…'; setTimeout(conectar, Math.min(15000, 1000 * intento)); };
+    ws.onclose = () => { intento += 1; est.textContent = 'WS: sondeo 2s (canal en memoria local)'; setTimeout(conectar, Math.min(15000, 1000 * intento)); };
     ws.onerror = () => { ws.close(); };
     ws.onmessage = (e) => {
       const d = (JSON.parse(e.data).datos) || {};
-      if (d.rama_a) document.getElementById('v-rama_a').textContent = d.rama_a.q.toFixed(3);
-      if (d.rama_b) document.getElementById('v-rama_b').textContent = d.rama_b.q.toFixed(3);
-      if (d.bomba) document.getElementById('v-bomba').textContent = d.bomba;
+      if (d.rama_a || d.rama_b || d.bomba) ultimoVivo = Date.now();
+      pintar(d);
     };
   }
   conectar();
+  setInterval(() => {
+    if (Date.now() - ultimoVivo < 3000) return;
+    fetch('/estadisticas/datos/?periodo=hoy').then(r => r.json()).then(j => {
+      const s = j.sensores;
+      pintar({
+        rama_a: {q: (s.rama_a.serie.slice(-1)[0] || [0, 0])[1]},
+        rama_b: {q: (s.rama_b.serie.slice(-1)[0] || [0, 0])[1]},
+      });
+      ultimoVivo = Date.now();
+    }).catch(() => {});
+  }, 2000);
 })();
 </script>
 {% endblock %}
