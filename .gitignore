@@ -8,6 +8,8 @@ __pycache__/
 # Env / secretos — NUNCA al repo
 .env
 .env.*
+!.env.example
+!software/.env.example
 *.pem
 *.key
 hardware/secrets.py

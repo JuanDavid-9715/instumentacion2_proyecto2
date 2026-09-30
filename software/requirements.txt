@@ -1,6 +1,7 @@
-# Base Fase 0 — se amplía en F2 (Channels/Daphne) y F5 (MQTT)
+# Base Fase 2 — SQLite local por defecto, PG/Render vía DATABASE_URL (dormant)
 Django>=5.0
 psycopg2-binary>=2.9
+dj-database-url>=2.0
 channels>=4.0
 daphne>=4.0
 paho-mqtt>=1.6
