@@ -2,17 +2,33 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from apps.sensores.models import Sensor
-from apps.sensores.queries import balance_hoy, estado_bomba
+from apps.sensores.models import EstadoBomba, Sensor
+from apps.sensores.queries import balance_hoy, estado_bomba, resumen_periodo, ultimos
+
+
+def _vs_prom(sensor, dias=7):
+    hoy = timezone.localdate()
+    vals_hoy = list(sensor.lecturas.filter(ts_ingesta__date=hoy).values_list('q', flat=True))
+    desde = timezone.now() - timezone.timedelta(days=dias)
+    vals_ref = list(sensor.lecturas.filter(ts_ingesta__gte=desde).values_list('q', flat=True))
+    prom_hoy = sum(vals_hoy) / len(vals_hoy) if vals_hoy else 0
+    prom_ref = sum(vals_ref) / len(vals_ref) if vals_ref else 0
+    pct = round(100 * (prom_hoy - prom_ref) / prom_ref, 1) if prom_ref else 0
+    return {'prom_hoy': round(prom_hoy, 3), 'prom_ref': round(prom_ref, 3), 'vs': pct}
 
 
 def red(request):
     ctx = balance_hoy()
     ctx['bomba'] = estado_bomba()
-    ctx['casas'] = [
-        {'codigo': 'rama_a', 'nombre': 'Casa A', **ctx['rama_a']},
-        {'codigo': 'rama_b', 'nombre': 'Casa B', **ctx['rama_b']},
-    ]
+    eb = EstadoBomba.objects.order_by('-ts').first()
+    ctx['bomba_ts'] = eb.ts if eb else None
+    ctx['casas'] = []
+    for codigo, nombre in (('rama_a', 'Casa A'), ('rama_b', 'Casa B')):
+        sensor = Sensor.objects.get(codigo=codigo)
+        ctx['casas'].append({
+            'codigo': codigo, 'nombre': nombre,
+            **ctx[codigo], **_vs_prom(sensor), 'spark': ultimos(codigo, 40),
+        })
     return render(request, 'red/red.html', ctx)
 
 
@@ -20,18 +36,26 @@ def detalle(request, codigo):
     sensor = get_object_or_404(Sensor, codigo=codigo)
     hoy = timezone.localdate()
     lecturas_hoy = list(sensor.lecturas.filter(ts_ingesta__date=hoy).order_by('ts_ingesta').values('q', 'ts_ingesta'))
-    desde7 = timezone.now() - timezone.timedelta(days=7)
-    vals7 = list(sensor.lecturas.filter(ts_ingesta__gte=desde7).values_list('q', flat=True))
-    prom7 = round(sum(vals7) / len(vals7), 3) if vals7 else 0
     vals_hoy = [r['q'] for r in lecturas_hoy]
-    prom_hoy = round(sum(vals_hoy) / len(vals_hoy), 3) if vals_hoy else 0
+    comp = _vs_prom(sensor)
+    otro_cod = 'rama_b' if codigo == 'rama_a' else 'rama_a'
+    otro = _vs_prom(get_object_or_404(Sensor, codigo=otro_cod)) if codigo in ('rama_a', 'rama_b') else None
+    caja = resumen_periodo(codigo, 1)
     paso = max(1, len(lecturas_hoy) // 120)
+    veredicto = ('sin datos hoy' if not vals_hoy else
+                 f"{comp['vs']:+.1f}% sobre su promedio 7d" if comp['vs'] >= 0 else
+                 f"{comp['vs']:.1f}% bajo su promedio 7d")
     return render(request, 'red/detalle.html', {
         'sensor': sensor,
         'n_hoy': len(vals_hoy),
-        'prom_hoy': prom_hoy,
-        'prom_7d': prom7,
+        'prom_hoy': comp['prom_hoy'],
+        'prom_7d': comp['prom_ref'],
+        'vs': comp['vs'],
+        'veredicto': veredicto,
         'max_hoy': round(max(vals_hoy), 3) if vals_hoy else 0,
+        'otro': otro,
+        'otro_cod': otro_cod,
+        'caja': caja,
         'serie': [[r['ts_ingesta'].isoformat(), r['q']] for r in lecturas_hoy[::paso]],
     })
 

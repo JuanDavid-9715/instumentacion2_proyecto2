@@ -108,6 +108,11 @@ main { padding: 1.2rem; max-width: 1200px; margin: 0 auto; }
 }
 .fila-nombre { font-weight: 700; }
 .fila-valor { font-size: 1.3rem; font-variant-numeric: tabular-nums; }
+.fantasma {
+  background: transparent; color: var(--texto-dim);
+  border: 1px dashed var(--linea); border-radius: 10px; padding: 0.6rem 1.2rem; cursor: pointer;
+}
+canvas.mini { width: 220px; height: 54px; }
 @media (max-width: 640px) {
   .heroe { grid-template-columns: 1fr; }
   .heroe-estado { text-align: left; }

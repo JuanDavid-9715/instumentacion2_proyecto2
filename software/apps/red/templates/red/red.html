@@ -1,34 +1,49 @@
 {% extends "base.html" %}
 {% block titulo %}HYDROS · Red{% endblock %}
 {% block contenido %}
-<h1>Red · Casas en tiempo real</h1>
-<div class="tarjetas">
+<h1>Red · ¿cómo está cada casa?</h1>
+<div class="filas">
   {% for c in casas %}
-  <a class="tarjeta" href="{% url 'detalle' c.codigo %}" style="text-decoration:none;color:inherit">
-    <div class="dim">{{ c.nombre|upper }} · {{ c.codigo }}</div>
-    <div class="valor"><span id="v-{{ c.codigo }}">{{ c.actual }}</span> <small>L/min</small></div>
-    <div class="dim">Hoy: {{ c.acumulado }} L · prom {{ c.promedio }}</div>
+  <a class="fila" href="{% url 'detalle' c.codigo %}">
+    <span>
+      <span class="fila-nombre {% if c.codigo == 'rama_a' %}b-ramaa{% else %}b-ramab{% endif %}">{{ c.nombre }}</span><br>
+      <span class="dim">hoy {{ c.acumulado }} L · {{ c.vs }}% vs prom 7d</span>
+    </span>
+    <span><canvas class="mini" id="spark-{{ c.codigo }}" width="220" height="54"></canvas></span>
+    <span class="fila-valor"><span id="v-{{ c.codigo }}">{{ c.actual }}</span> <small>L/min</small></span>
   </a>
   {% endfor %}
-  <div class="tarjeta" id="t-nueva" style="cursor:pointer;border-style:dashed">
-    <div class="dim">+ Agregar casa</div>
-    <div class="dim">Solo UI en esta fase (no funcional)</div>
-  </div>
 </div>
-<details style="margin-top:1.5rem">
-  <summary class="dim">Zona empresa · control bomba (uso interno)</summary>
-  <p>Estado: <strong id="v-bomba">{{ bomba }}</strong></p>
-  <form method="post" action="{% url 'bomba' %}">
+<p><button id="t-nueva" type="button" class="fantasma">+ Agregar casa (próximamente)</button></p>
+
+<section class="chart-card" aria-label="Zona empresa">
+  <h3>Empresa · control de bomba</h3>
+  <p class="caption">Uso interno. Estado: <strong id="v-bomba">{{ bomba }}</strong>{% if bomba_ts %} · último cambio {{ bomba_ts }}{% endif %}</p>
+  <form method="post" action="{% url 'bomba' %}" onsubmit="return confirm('¿Cambiar estado de la bomba?');">
     {% csrf_token %}
     <button name="orden" value="ON">Encender</button>
     <button name="orden" value="OFF">Apagar</button>
   </form>
-</details>
-<p class="dim estado" id="ws-est" aria-live="polite">WS: conectando…</p>
+</section>
+<p class="dim estado" id="ws-est" aria-live="polite">Sondeo cada 2 s…</p>
 {% endblock %}
 {% block extra_js %}
 <script>
 (function () {
+  const datos = { {% for c in casas %}"{{ c.codigo }}": {{ c.spark|safe }}{% if not forloop.last %},{% endif %}{% endfor %} };
+  Object.entries(datos).forEach(([k, vals]) => {
+    const c = document.getElementById('spark-' + k);
+    if (!c || !vals.length) return;
+    const x = c.getContext('2d'), mx = Math.max(0.5, ...vals);
+    const col = getComputedStyle(document.documentElement).getPropertyValue(k === 'rama_a' ? '--neon-ramaa' : '--neon-ramab');
+    x.strokeStyle = col.trim(); x.lineWidth = 1.6; x.beginPath();
+    vals.forEach((v, i) => {
+      const px = 4 + i * (c.width - 8) / Math.max(1, vals.length - 1);
+      const py = c.height - 4 - (v / mx) * (c.height - 10);
+      i ? x.lineTo(px, py) : x.moveTo(px, py);
+    });
+    x.stroke();
+  });
   document.getElementById('t-nueva').addEventListener('click', () => alert('Alta de casa: solo UI en esta fase.'));
   const est = document.getElementById('ws-est');
   const url = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/flujos/';
@@ -40,8 +55,8 @@
   }
   function conectar() {
     const ws = new WebSocket(url);
-    ws.onopen = () => { est.textContent = 'WS: en vivo'; intento = 0; };
-    ws.onclose = () => { intento += 1; est.textContent = 'WS: sondeo 2s (canal en memoria local)'; setTimeout(conectar, Math.min(15000, 1000 * intento)); };
+    ws.onopen = () => { est.textContent = 'En vivo'; intento = 0; };
+    ws.onclose = () => { intento += 1; est.textContent = 'Sondeo 2 s'; setTimeout(conectar, Math.min(15000, 1000 * intento)); };
     ws.onerror = () => { ws.close(); };
     ws.onmessage = (e) => {
       const d = (JSON.parse(e.data).datos) || {};
