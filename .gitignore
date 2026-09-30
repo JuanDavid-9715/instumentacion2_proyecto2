@@ -1,0 +1,33 @@
+# Python / venv
+software/venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.build/
+
+# Env / secretos — NUNCA al repo
+.env
+.env.*
+*.pem
+*.key
+
+# Django / DB local
+*.sqlite3
+db.sqlite3
+media/
+staticfiles/
+
+# Node (futuro frontend tooling)
+node_modules/
+dist/
+
+# Editores / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Logs / temporales
+*.log
+.tmp/
