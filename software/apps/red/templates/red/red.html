@@ -22,10 +22,13 @@
 <script>
 (function () {
   const datos = { {% for c in casas %}"{{ c.codigo }}": {{ c.spark|safe }}{% if not forloop.last %},{% endif %}{% endfor %} };
-  Object.entries(datos).forEach(([k, vals]) => {
+  function dibujarMini(k) {
+    const vals = datos[k];
     const c = document.getElementById('spark-' + k);
     if (!c || !vals.length) return;
-    const x = c.getContext('2d'), mx = Math.max(0.5, ...vals);
+    const x = c.getContext('2d');
+    x.clearRect(0, 0, c.width, c.height);
+    const mx = Math.max(0.5, ...vals);
     const col = getComputedStyle(document.documentElement).getPropertyValue(k === 'rama_a' ? '--neon-ramaa' : '--neon-ramab');
     x.strokeStyle = col.trim(); x.lineWidth = 1.6; x.beginPath();
     vals.forEach((v, i) => {
@@ -34,14 +37,20 @@
       i ? x.lineTo(px, py) : x.moveTo(px, py);
     });
     x.stroke();
-  });
+  }
+  Object.keys(datos).forEach(dibujarMini);
+  function empuja(k, v) {
+    datos[k].push(v);
+    if (datos[k].length > 40) datos[k].shift();
+    dibujarMini(k);
+  }
   document.getElementById('t-nueva').addEventListener('click', () => alert('Alta de casa: solo UI en esta fase.'));
   const est = document.getElementById('ws-est');
   const url = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/flujos/';
   let intento = 0, ultimoVivo = 0;
   function pintar(d) {
-    if (d.rama_a) document.getElementById('v-rama_a').textContent = d.rama_a.q.toFixed(3);
-    if (d.rama_b) document.getElementById('v-rama_b').textContent = d.rama_b.q.toFixed(3);
+    if (d.rama_a) { document.getElementById('v-rama_a').textContent = d.rama_a.q.toFixed(3); empuja('rama_a', d.rama_a.q); }
+    if (d.rama_b) { document.getElementById('v-rama_b').textContent = d.rama_b.q.toFixed(3); empuja('rama_b', d.rama_b.q); }
     const vb = document.getElementById('v-bomba');
     if (vb && d.bomba) vb.textContent = d.bomba;
   }
