@@ -23,9 +23,10 @@
 
 <div class="grid2">
 <section class="chart-card">
-  <h3>Evolución temporal</h3>
-  <p class="caption">Cuándo hubo consumo. Picos = motor encendido; plano en 0 = reposo.</p>
+  <h3 id="t-lineas">Evolución temporal</h3>
+  <p class="caption">Cuándo hubo consumo. Picos = motor encendido; plano en 0 = reposo. Pasa el mouse para leer valores.</p>
   <canvas id="g-lineas" height="240"></canvas>
+  <p class="dim" id="tip-lineas" aria-live="polite"></p>
 </section>
 <section class="chart-card">
   <h3>Histograma por sensor</h3>
@@ -95,22 +96,56 @@
     });
     x.fillStyle = C.dim; x.fillText(ylabel, 48, 20);
   }
+  let SERIES = {};
+  function hhmm(iso) { const d = new Date(iso); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
   function dibujarLineas(series) {
-    const [x, w, h] = prep('g-lineas');
+    SERIES = series;
+    const c = document.getElementById('g-lineas');
+    const dpr = window.devicePixelRatio || 1;
+    const w = c.clientWidth || 800, h = parseInt(c.getAttribute('height'), 10) || 240;
+    c.width = w * dpr; c.height = h * dpr; c.style.height = h + 'px';
+    const x = c.getContext('2d');
+    x.setTransform(dpr, 0, 0, dpr, 0, 0);
+    x.font = '12px "Segoe UI", system-ui, sans-serif';
     const todas = [].concat(...Object.values(series).map(s => s.map(p => p[1])));
     const mx = Math.max(0.5, ...todas);
-    ejes(x, w, h, mx, 'L/min');
+    const tiempos = [].concat(...Object.values(series).map(s => s.map(p => new Date(p[0]).getTime())));
+    const t0 = Math.min(...tiempos), t1 = Math.max(...tiempos), span = Math.max(1, t1 - t0);
+    const X = (iso) => 56 + (new Date(iso).getTime() - t0) / span * (w - 70);
+    const Y = (v) => h - 30 - (v / mx) * (h - 52);
+    x.strokeStyle = '#24334f'; x.lineWidth = 1;
+    x.beginPath(); x.moveTo(56, 10); x.lineTo(56, h - 30); x.lineTo(w - 10, h - 30); x.stroke();
+    x.fillStyle = C.dim;
+    [0, 0.5, 1].forEach(f => x.fillText((mx * f).toFixed(1), 8, Y(mx * f) + 4));
+    [0, 0.33, 0.66, 1].forEach(f => x.fillText(hhmm(new Date(t0 + span * f).toISOString()), 56 + f * (w - 70) - 14, h - 10));
+    x.fillText('L/min', 60, 22);
+    let pico = 0, picoT = '';
     ORDEN.forEach(k => {
       const pts = series[k] || [];
-      x.strokeStyle = C[k]; x.lineWidth = 1.8; x.beginPath();
-      pts.forEach(([t, v], i) => {
-        const px = 48 + i * (w - 60) / Math.max(1, pts.length - 1);
-        const py = h - 26 - (v / mx) * (h - 44);
-        i ? x.lineTo(px, py) : x.moveTo(px, py);
-      });
+      x.strokeStyle = C[k]; x.lineWidth = 2.5; x.beginPath();
+      pts.forEach(([t, v], i) => { i ? x.lineTo(X(t), Y(v)) : x.moveTo(X(t), Y(v)); });
       x.stroke();
-      if (pts.length) x.fillText(k, w - 70, h - 26 - (pts[pts.length - 1][1] / mx) * (h - 44));
+      if (pts.length) {
+        const [lt, lv] = pts[pts.length - 1];
+        x.fillStyle = C[k];
+        x.beginPath(); x.arc(X(lt), Y(lv), 3.5, 0, 7); x.fill();
+        x.fillStyle = '#e8eef7'; x.fillText(`${k} ${lv.toFixed(2)}`, Math.min(X(lt) + 8, w - 90), Y(lv) - 6);
+      }
+      pts.forEach(([t, v]) => { if (k === 'troncal' && v > pico) { pico = v; picoT = hhmm(t); } });
     });
+    if (pico > 0) document.getElementById('t-lineas').textContent = `Evolución: pico ${pico.toFixed(2)} L/min a las ${picoT}`;
+    c.onmousemove = (e) => {
+      const r = c.getBoundingClientRect(), mtren = SERIES.troncal || [];
+      if (!mtren.length) return;
+      let bi = 0, bd = 1e18;
+      mtren.forEach(([t], i) => {
+        const d = Math.abs(X(t) - (e.clientX - r.left));
+        if (d < bd) { bd = d; bi = i; }
+      });
+      const lee = (k) => ((SERIES[k] || [])[Math.min(bi, (SERIES[k] || []).length - 1)] || [0, 0])[1].toFixed(2);
+      document.getElementById('tip-lineas').textContent =
+        `${hhmm(mtren[bi][0])} · T ${lee('troncal')} · A ${lee('rama_a')} · B ${lee('rama_b')} L/min`;
+    };
   }
   function dibujarCaja(stats) {
     const [x, w, h] = prep('g-caja');
