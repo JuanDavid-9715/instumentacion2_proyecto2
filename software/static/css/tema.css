@@ -84,6 +84,18 @@ main { padding: 1.2rem; max-width: 1200px; margin: 0 auto; }
 .b-ramab { color: var(--neon-ramab); }
 .dim { color: var(--texto-dim); }
 .estado { min-height: 1.2em; }
+.tubo { stroke: var(--linea); stroke-width: 10; stroke-linecap: round; fill: none; }
+.flujo {
+  fill: none;
+  stroke-width: 3;
+  stroke-dasharray: 8 8;
+  stroke-linecap: round;
+  animation: flujo 1.2s linear infinite;
+}
+@keyframes flujo { to { stroke-dashoffset: -16; } }
+.flujo-t { stroke: var(--neon-troncal); }
+.flujo-a { stroke: var(--neon-ramaa); }
+.flujo-b { stroke: var(--neon-ramab); }
 @media (max-width: 640px) {
   header.top { flex-wrap: wrap; }
   main { padding: 0.8rem; }
