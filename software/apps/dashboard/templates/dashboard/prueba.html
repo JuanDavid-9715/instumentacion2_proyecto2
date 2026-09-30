@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><title>WS prueba</title></head>
+<body>
+<h1>WS flujos (prueba técnica F6)</h1>
+<pre id="log">conectando…</pre>
+<script>
+const log = document.getElementById('log');
+const ws = new WebSocket('ws://' + location.host + '/ws/flujos/');
+ws.onmessage = e => { log.textContent = e.data; };
+ws.onerror = () => { log.textContent = 'error WS'; };
+</script>
+</body>
+</html>

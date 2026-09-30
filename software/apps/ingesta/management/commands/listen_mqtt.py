@@ -1,8 +1,16 @@
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from django.core.management.base import BaseCommand
 from django.db import close_old_connections
 
+from apps.dashboard.consumers import GRUPO
 from apps.ingesta.mqtt import TOPICOS_FLUJO, TOPIC_ESTADO_BOMBA, crear_cliente, parsear_flujo
 from apps.sensores.models import EstadoBomba, Sensor
+
+
+def emitir(datos):
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(GRUPO, {'type': 'flujo.update', 'datos': datos})
 
 
 class Command(BaseCommand):
@@ -29,13 +37,15 @@ class Command(BaseCommand):
                 try:
                     codigo, q, ts = parsear_flujo(topic, msg.payload)
                     sensor = Sensor.objects.get(codigo=codigo)
-                    sensor.lecturas.create(q=q, ts_nodo=ts)
+                    lec = sensor.lecturas.create(q=q, ts_nodo=ts)
+                    emitir({codigo: {'q': q, 'ts': lec.ts_ingesta.isoformat()}})
                 except Exception as e:
                     self.stderr.write(f'descartado {topic}: {e}')
             elif topic == TOPIC_ESTADO_BOMBA:
                 estado = msg.payload.decode().strip().upper()
                 if estado in ('ON', 'OFF'):
                     EstadoBomba.objects.create(estado=estado, origen='mqtt')
+                    emitir({'bomba': estado})
 
         client.on_connect = on_connect
         client.on_message = on_message
