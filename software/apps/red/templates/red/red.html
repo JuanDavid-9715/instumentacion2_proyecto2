@@ -17,13 +17,8 @@
 <p><button id="t-nueva" type="button" class="fantasma">+ Agregar casa (próximamente)</button></p>
 
 <section class="chart-card" aria-label="Zona empresa">
-  <h3>Empresa · control de bomba</h3>
-  <p class="caption">Uso interno. Estado: <strong id="v-bomba">{{ bomba }}</strong>{% if bomba_ts %} · último cambio {{ bomba_ts }}{% endif %}</p>
-  <form method="post" action="{% url 'bomba' %}" onsubmit="return confirm('¿Cambiar estado de la bomba?');">
-    {% csrf_token %}
-    <button name="orden" value="ON">Encender</button>
-    <button name="orden" value="OFF">Apagar</button>
-  </form>
+  <h3>Empresa · estado de bomba</h3>
+  <p class="caption">Solo lectura. Estado: <strong id="v-bomba">{{ bomba }}</strong>{% if bomba_ts %} · último cambio {{ bomba_ts }}{% endif %} · control en el Panel.</p>
 </section>
 <p class="dim estado" id="ws-est" aria-live="polite">Sondeo cada 2 s…</p>
 {% endblock %}
