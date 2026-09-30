@@ -10,6 +10,7 @@ __pycache__/
 .env.*
 *.pem
 *.key
+hardware/secrets.py
 
 # Django / DB local
 *.sqlite3

@@ -1,0 +1,8 @@
+WIFI_SSID = "XXXX"
+WIFI_PASS = "XXXX"
+
+MQTT_HOST = b"XXXX.s1.eu.hivemq.cloud"
+MQTT_PORT = 8883
+MQTT_USER = b"XXXX"
+MQTT_PASS = b"XXXX"
+MQTT_ID = b"esp32s3-001"
