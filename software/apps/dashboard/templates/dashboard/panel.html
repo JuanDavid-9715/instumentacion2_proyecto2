@@ -13,7 +13,12 @@
   <div class="heroe-estado">
     <div class="dim">Red</div>
     <div class="heroe-semaforo" id="v-est">{{ estado }}</div>
-    <div class="dim">Bomba: <span id="v-bomba">{{ bomba }}</span></div>
+    <div class="dim">Bomba</div>
+    <form method="post" action="{% url 'bomba' %}" onsubmit="return confirm('¿Cambiar estado de la bomba?');">
+      {% csrf_token %}
+      <input type="hidden" name="orden" id="orden-bomba" value="{% if bomba == 'ON' %}OFF{% else %}ON{% endif %}">
+      <button id="v-bomba" type="submit" class="toggle-bomba {% if bomba == 'ON' %}on{% else %}off{% endif %}">{{ bomba }}</button>
+    </form>
   </div>
 </section>
 
@@ -97,7 +102,10 @@
     $('a-troncal').textContent = j.acumulado.troncal;
     $('a-ramaa').textContent = j.acumulado.rama_a;
     $('a-ramab').textContent = j.acumulado.rama_b;
-    $('v-bomba').textContent = j.bomba;
+    const b = $('v-bomba');
+    b.textContent = j.bomba;
+    b.className = 'toggle-bomba ' + (j.bomba === 'ON' ? 'on' : 'off');
+    $('orden-bomba').value = j.bomba === 'ON' ? 'OFF' : 'ON';
     const est = $('v-est');
     est.textContent = j.nodo_ok ? j.estado : 'SIN DATOS';
     est.className = 'heroe-semaforo ' + (j.nodo_ok ? 'sem-' + j.estado : 'sem-NODATA');
@@ -130,7 +138,12 @@
       if (d.troncal) { tramo('v-troncal', 's-troncal', 'f-troncal', d.troncal.q); spark.push(d.troncal.q); spark.shift(); dibujarSpark(); }
       if (d.rama_a) tramo('v-ramaa', 's-ramaa', 'f-ramaa', d.rama_a.q);
       if (d.rama_b) tramo('v-ramab', 's-ramab', 'f-ramab', d.rama_b.q);
-      if (d.bomba) $('v-bomba').textContent = d.bomba;
+      if (d.bomba) {
+        const b = $('v-bomba');
+        b.textContent = d.bomba;
+        b.className = 'toggle-bomba ' + (d.bomba === 'ON' ? 'on' : 'off');
+        $('orden-bomba').value = d.bomba === 'ON' ? 'OFF' : 'ON';
+      }
     };
   } catch (e) {}
 })();
