@@ -1,34 +1,35 @@
 {% extends "base.html" %}
 {% block titulo %}HYDROS · {{ sensor.nombre }}{% endblock %}
 {% block contenido %}
-<h1>{{ sensor.nombre }} · {{ veredicto }}</h1>
-<p class="caption">Promedio hoy {{ prom_hoy }} vs 7 días {{ prom_7d }} L/min.</p>
+<p class="dim"><a href="{% url 'red' %}">← Red</a> · {{ sensor.codigo }}</p>
+<h1 class="b-{{ color }}">{{ sensor.nombre }} <small class="dim">· {{ veredicto }}</small></h1>
+{% if n_hoy == 0 and prom_7d > 0 %}
+<p class="caption">Sin consumo hoy con historial previo: ¿llave cerrada o sensor sin agua?</p>
+{% endif %}
 <div class="tarjetas">
-  <div class="tarjeta"><div class="dim">Muestras hoy</div><div class="valor">{{ n_hoy }}</div></div>
   <div class="tarjeta"><div class="dim">Prom hoy</div><div class="valor">{{ prom_hoy }} <small>L/min</small></div></div>
   <div class="tarjeta"><div class="dim">Prom 7d</div><div class="valor">{{ prom_7d }} <small>L/min</small></div></div>
-  <div class="tarjeta"><div class="dim">Máx hoy</div><div class="valor">{{ max_hoy }} <small>L/min</small></div></div>
+  <div class="tarjeta"><div class="dim">Del troncal hoy</div><div class="valor">{{ share }}<small>%</small></div></div>
+  <div class="tarjeta"><div class="dim">Máx hoy ({{ n_hoy }} muestras)</div><div class="valor">{{ max_hoy }} <small>L/min</small></div></div>
 </div>
 <h2>Evolución hoy</h2>
-{% if n_hoy == 0 %}
-<p class="dim">Sin lecturas hoy: enciende el nodo y arranca Daphne.</p>
-{% endif %}
 <canvas id="g-det" width="900" height="260" style="width:100%;background:var(--panel);border:1px solid var(--linea);border-radius:10px"></canvas>
 <h2>Distribución hoy (caja)</h2>
 <p class="caption">Q1 {{ caja.q1 }} · mediana {{ caja.mediana }} · Q3 {{ caja.q3 }} L/min.</p>
 <canvas id="g-det-caja" width="400" height="220" style="max-width:460px;background:var(--panel);border:1px solid var(--linea);border-radius:10px"></canvas>
 {% if otro %}
-<p class="caption">La otra casa promedia {{ otro.prom_ref }} L/min hoy ({{ sensor.codigo }} vs {{ otro_cod }}).</p>
+<h2>Contexto</h2>
+<p class="caption">La otra casa ({{ otro_cod }}) promedia {{ otro.prom_ref }} L/min en 7d frente a {{ prom_7d }} de esta.</p>
 {% endif %}
-<p><a href="{% url 'red' %}">← Volver a Red</a></p>
 {% endblock %}
 {% block extra_js %}
 <script>
 (function () {
   const serie = {{ serie|safe }};
+  const col = getComputedStyle(document.documentElement).getPropertyValue('{{ color }}' === 'ramaa' ? '--neon-ramaa' : '--neon-ramab').trim();
   const c = document.getElementById('g-det'), x = c.getContext('2d');
   const vals = serie.map(p => p[1]), mx = Math.max(0.5, ...vals);
-  x.strokeStyle = '#22d3ee'; x.lineWidth = 2; x.beginPath();
+  x.strokeStyle = col; x.lineWidth = 2.2; x.beginPath();
   serie.forEach(([t, v], i) => {
     const px = 10 + i * (c.width - 20) / Math.max(1, serie.length - 1);
     const py = c.height - 12 - (v / mx) * (c.height - 30);
@@ -38,7 +39,7 @@
   const k = document.getElementById('g-det-caja'), kx = k.getContext('2d');
   const q = { q1: {{ caja.q1 }}, med: {{ caja.mediana }}, q3: {{ caja.q3 }}, min: {{ caja.min }}, max: {{ caja.max }} };
   const m2 = Math.max(0.5, q.max), Y = (v) => k.height - 20 - (v / m2) * (k.height - 48);
-  kx.fillStyle = '#34d3993d'; kx.strokeStyle = '#34d399'; kx.lineWidth = 2.5;
+  kx.fillStyle = col + '3d'; kx.strokeStyle = col; kx.lineWidth = 2.5;
   kx.fillRect(150, Y(q.q3), 100, Math.max(4, Y(q.q1) - Y(q.q3)));
   kx.strokeRect(150, Y(q.q3), 100, Math.max(4, Y(q.q1) - Y(q.q3)));
   kx.lineWidth = 3.5; kx.beginPath(); kx.moveTo(150, Y(q.med)); kx.lineTo(250, Y(q.med)); kx.stroke();

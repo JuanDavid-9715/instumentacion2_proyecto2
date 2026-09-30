@@ -45,8 +45,12 @@ def detalle(request, codigo):
     veredicto = ('sin datos hoy' if not vals_hoy else
                  f"{comp['vs']:+.1f}% sobre su promedio 7d" if comp['vs'] >= 0 else
                  f"{comp['vs']:.1f}% bajo su promedio 7d")
+    bal = balance_hoy()
+    t_acum = bal['troncal']['acumulado']
+    mi_acum = bal[codigo]['acumulado'] if codigo in bal else 0
     return render(request, 'red/detalle.html', {
         'sensor': sensor,
+        'color': 'ramaa' if codigo == 'rama_a' else 'ramab',
         'n_hoy': len(vals_hoy),
         'prom_hoy': comp['prom_hoy'],
         'prom_7d': comp['prom_ref'],
@@ -55,6 +59,7 @@ def detalle(request, codigo):
         'max_hoy': round(max(vals_hoy), 3) if vals_hoy else 0,
         'otro': otro,
         'otro_cod': otro_cod,
+        'share': round(100 * mi_acum / t_acum, 1) if t_acum else 0,
         'caja': caja,
         'serie': [[r['ts_ingesta'].isoformat(), r['q']] for r in lecturas_hoy[::paso]],
     })
