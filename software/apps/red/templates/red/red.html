@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block titulo %}HYDROS · Red{% endblock %}
+{% block contenido %}
+<h1>Red · Casas en tiempo real</h1>
+<div class="tarjetas">
+  {% for c in casas %}
+  <a class="tarjeta" href="{% url 'detalle' c.codigo %}" style="text-decoration:none;color:inherit">
+    <div class="dim">{{ c.nombre|upper }} · {{ c.codigo }}</div>
+    <div class="valor"><span id="v-{{ c.codigo }}">{{ c.actual }}</span> <small>L/min</small></div>
+    <div class="dim">Hoy: {{ c.acumulado }} L · prom {{ c.promedio }}</div>
+  </a>
+  {% endfor %}
+  <div class="tarjeta" id="t-nueva" style="cursor:pointer;border-style:dashed">
+    <div class="dim">+ Agregar casa</div>
+    <div class="dim">Solo UI en esta fase (no funcional)</div>
+  </div>
+</div>
+<details style="margin-top:1.5rem">
+  <summary class="dim">Zona empresa · control bomba (uso interno)</summary>
+  <p>Estado: <strong id="v-bomba">{{ bomba }}</strong></p>
+  <form method="post" action="{% url 'bomba' %}">
+    {% csrf_token %}
+    <button name="orden" value="ON">Encender</button>
+    <button name="orden" value="OFF">Apagar</button>
+  </form>
+</details>
+<p class="dim estado" id="ws-est">WS: conectando…</p>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+  document.getElementById('t-nueva').addEventListener('click', () => alert('Alta de casa: solo UI en esta fase.'));
+  const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/flujos/');
+  const est = document.getElementById('ws-est');
+  ws.onopen = () => { est.textContent = 'WS: en vivo'; };
+  ws.onclose = () => { est.textContent = 'WS: desconectado'; };
+  ws.onmessage = (e) => {
+    const d = (JSON.parse(e.data).datos) || {};
+    if (d.rama_a) document.getElementById('v-rama_a').textContent = d.rama_a.q.toFixed(3);
+    if (d.rama_b) document.getElementById('v-rama_b').textContent = d.rama_b.q.toFixed(3);
+    if (d.bomba) document.getElementById('v-bomba').textContent = d.bomba;
+  };
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block titulo %}HYDROS · {{ sensor.nombre }}{% endblock %}
+{% block contenido %}
+<h1>{{ sensor.nombre }} · {{ sensor.codigo }}</h1>
+<p class="dim">Hoy vs promedio 7 días</p>
+<div class="tarjetas">
+  <div class="tarjeta"><div class="dim">Muestras hoy</div><div class="valor">{{ n_hoy }}</div></div>
+  <div class="tarjeta"><div class="dim">Prom hoy</div><div class="valor">{{ prom_hoy }} <small>L/min</small></div></div>
+  <div class="tarjeta"><div class="dim">Prom 7d</div><div class="valor">{{ prom_7d }} <small>L/min</small></div></div>
+  <div class="tarjeta"><div class="dim">Máx hoy</div><div class="valor">{{ max_hoy }} <small>L/min</small></div></div>
+</div>
+<h2>Evolución hoy (línea)</h2>
+<canvas id="g-det" width="900" height="260" style="width:100%;background:var(--panel);border:1px solid var(--linea);border-radius:10px"></canvas>
+<p><a href="{% url 'red' %}">← Volver a Red</a></p>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+  const serie = {{ serie|safe }};
+  const c = document.getElementById('g-det'), x = c.getContext('2d');
+  const vals = serie.map(p => p[1]), mx = Math.max(1, ...vals);
+  x.strokeStyle = '#22d3ee'; x.lineWidth = 1.6; x.beginPath();
+  serie.forEach(([t, v], i) => {
+    const px = 10 + i * (c.width - 20) / Math.max(1, serie.length - 1);
+    const py = c.height - 12 - (v / mx) * (c.height - 30);
+    i ? x.lineTo(px, py) : x.moveTo(px, py);
+  });
+  x.stroke();
+})();
+</script>
+{% endblock %}
