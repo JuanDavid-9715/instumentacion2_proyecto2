@@ -72,13 +72,22 @@
   fetch('/estadisticas/datos/?periodo=' + per).then(r => r.json()).then(j => {
     const s = j.sensores, series = {}, proms = {}, acums = {};
     const tb = document.querySelector('#t-stats tbody');
+    let total = 0;
     Object.entries(s).forEach(([k, v]) => {
+      total += v.n;
       series[k] = v.serie; proms[k] = v.media; acums[k] = v.acumulado;
       const tr = document.createElement('tr');
       tr.innerHTML = `<td>${k}</td><td>${v.n}</td><td>${v.media}</td><td>${v.mediana}</td><td>${v.moda ?? '—'}</td><td>${v.desv}</td><td>${v.min}</td><td>${v.max}</td><td>${v.acumulado}</td>`;
       tb.appendChild(tr);
     });
     dibujarLineas(series); dibujarBarras(proms); dibujarPastel(acums);
+    if (!total) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td colspan="9">Sin datos en este periodo: enciende el nodo y corre listen_mqtt.</td>';
+      tb.appendChild(tr);
+    }
+  }).catch(() => {
+    document.querySelector('#t-stats tbody').innerHTML = '<tr><td colspan="9">Error cargando datos — reintenta.</td></tr>';
   });
 })();
 </script>

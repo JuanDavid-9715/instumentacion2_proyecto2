@@ -10,6 +10,9 @@
   <div class="tarjeta"><div class="dim">Máx hoy</div><div class="valor">{{ max_hoy }} <small>L/min</small></div></div>
 </div>
 <h2>Evolución hoy (línea)</h2>
+{% if n_hoy == 0 %}
+<p class="dim">Sin lecturas hoy: enciende el nodo y corre <code>listen_mqtt</code>.</p>
+{% endif %}
 <canvas id="g-det" width="900" height="260" style="width:100%;background:var(--panel);border:1px solid var(--linea);border-radius:10px"></canvas>
 <p><a href="{% url 'red' %}">← Volver a Red</a></p>
 {% endblock %}

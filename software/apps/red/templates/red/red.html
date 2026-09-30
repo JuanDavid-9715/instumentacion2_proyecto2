@@ -24,22 +24,28 @@
     <button name="orden" value="OFF">Apagar</button>
   </form>
 </details>
-<p class="dim estado" id="ws-est">WS: conectando…</p>
+<p class="dim estado" id="ws-est" aria-live="polite">WS: conectando…</p>
 {% endblock %}
 {% block extra_js %}
 <script>
 (function () {
   document.getElementById('t-nueva').addEventListener('click', () => alert('Alta de casa: solo UI en esta fase.'));
-  const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/flujos/');
   const est = document.getElementById('ws-est');
-  ws.onopen = () => { est.textContent = 'WS: en vivo'; };
-  ws.onclose = () => { est.textContent = 'WS: desconectado'; };
-  ws.onmessage = (e) => {
-    const d = (JSON.parse(e.data).datos) || {};
-    if (d.rama_a) document.getElementById('v-rama_a').textContent = d.rama_a.q.toFixed(3);
-    if (d.rama_b) document.getElementById('v-rama_b').textContent = d.rama_b.q.toFixed(3);
-    if (d.bomba) document.getElementById('v-bomba').textContent = d.bomba;
-  };
+  const url = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/flujos/';
+  let intento = 0;
+  function conectar() {
+    const ws = new WebSocket(url);
+    ws.onopen = () => { est.textContent = 'WS: en vivo'; intento = 0; };
+    ws.onclose = () => { intento += 1; est.textContent = 'WS: desconectado — reintentando…'; setTimeout(conectar, Math.min(15000, 1000 * intento)); };
+    ws.onerror = () => { ws.close(); };
+    ws.onmessage = (e) => {
+      const d = (JSON.parse(e.data).datos) || {};
+      if (d.rama_a) document.getElementById('v-rama_a').textContent = d.rama_a.q.toFixed(3);
+      if (d.rama_b) document.getElementById('v-rama_b').textContent = d.rama_b.q.toFixed(3);
+      if (d.bomba) document.getElementById('v-bomba').textContent = d.bomba;
+    };
+  }
+  conectar();
 })();
 </script>
 {% endblock %}

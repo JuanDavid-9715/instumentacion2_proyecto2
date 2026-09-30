@@ -9,6 +9,7 @@
 {% block extra_head %}{% endblock %}
 </head>
 <body>
+<a class="skip" href="#contenido">Saltar al contenido</a>
 <header class="top">
   <span class="marca">
     <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true">
@@ -24,7 +25,7 @@
   </nav>
   <button id="btn-tema" type="button">☀ Claro</button>
 </header>
-<main>
+<main id="contenido">
 {% block contenido %}{% endblock %}
 </main>
 {% block extra_js %}{% endblock %}

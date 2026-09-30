@@ -46,16 +46,27 @@
   <text x="470" y="45" fill="#9fb0c9" font-size="13">CASA A <tspan id="s-ramaa">{{ rama_a.actual }}</tspan></text>
   <text x="470" y="205" fill="#9fb0c9" font-size="13">CASA B <tspan id="s-ramab">{{ rama_b.actual }}</tspan></text>
 </svg>
-<p class="dim estado" id="ws-est">WS: conectando…</p>
+<p class="dim estado" id="ws-est" aria-live="polite">WS: conectando…</p>
+{% if troncal.n == 0 and rama_a.n == 0 and rama_b.n == 0 %}
+<p class="dim">Sin lecturas hoy: enciende el nodo ESP32 y corre <code>listen_mqtt</code> en el servidor.</p>
+{% endif %}
 {% endblock %}
 {% block extra_js %}
 <script>
 (function () {
-  const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/flujos/');
   const est = document.getElementById('ws-est');
-  ws.onopen = () => { est.textContent = 'WS: en vivo'; };
-  ws.onclose = () => { est.textContent = 'WS: desconectado'; };
-  ws.onmessage = (e) => {
+  const url = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/flujos/';
+  let intento = 0;
+  function conectar() {
+    const ws = new WebSocket(url);
+    ws.onopen = () => { est.textContent = 'WS: en vivo'; intento = 0; };
+    ws.onclose = () => {
+      intento += 1;
+      est.textContent = 'WS: desconectado — reintentando…';
+      setTimeout(conectar, Math.min(15000, 1000 * intento));
+    };
+    ws.onerror = () => { ws.close(); };
+    ws.onmessage = (e) => {
     const m = JSON.parse(e.data);
     const d = m.datos || {};
     function tramo(idV, idS, idF, v) {
@@ -72,7 +83,9 @@
     if (d.rama_a) tramo('v-ramaa', 's-ramaa', 'f-ramaa', d.rama_a.q);
     if (d.rama_b) tramo('v-ramab', 's-ramab', 'f-ramab', d.rama_b.q);
     if (d.bomba) document.getElementById('v-bomba').textContent = d.bomba;
-  };
+    };
+  }
+  conectar();
 })();
 </script>
 {% endblock %}
